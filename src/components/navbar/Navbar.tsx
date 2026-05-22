@@ -1,28 +1,46 @@
-import "./Navbar.css"
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Menu, X, Sparkles } from "lucide-react";
+import "./Navbar.css";
 
 function Navbar(){
     const navigate = useNavigate();
+    const [menuActive, setMenuActive] = useState(false);
+
+    const toggleMenu = () => {
+        setMenuActive(!menuActive);
+    };
+
+    const closeMenu = () => {
+        setMenuActive(false);
+    };
 
     return(
         <div>
           <nav className="navbar">
-            <div className="logo" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
-                <p>rbsga</p>
+            <div className="logo" onClick={() => { navigate("/"); closeMenu(); }} style={{ cursor: "pointer" }}>
+                <Sparkles size={24} className="logo-icon" />
+                <span className="logo-text">Careercraft <span className="highlight"></span></span>
             </div>
 
-            <ul className="nav-links">
-              <li><Link to="/#home">HOME</Link></li>
-              <li><Link to="/#features">FEATURES</Link></li>
-              <li><Link to="/#services">SERVICES</Link></li>
-              <li><Link to="/#about">ABOUT</Link></li>
-              <li><Link to="/#contact">CONTACT US</Link></li>
+            <div className="menu-toggle" onClick={toggleMenu} aria-label="Toggle menu">
+                {menuActive ? <X size={28} /> : <Menu size={28} />}
+            </div>
+
+            <ul className={`nav-links ${menuActive ? "active" : ""}`}>
+              <li><Link to="/#home" onClick={closeMenu}>HOME</Link></li>
+              <li><Link to="/#features" onClick={closeMenu}>FEATURES</Link></li>
+              <li><Link to="/#services" onClick={closeMenu}>SERVICES</Link></li>
+              <li><Link to="/#about" onClick={closeMenu}>ABOUT</Link></li>
+              <li><Link to="/#contact" onClick={closeMenu}>CONTACT US</Link></li>
               
-              <div className="sign-btn">
-                <Link to="/login"><button>LOGIN</button></Link>
-              </div>
-              <div className="gs-btn">
-                <Link to="/signup"><button>GET STARTED</button></Link>
+              <div className="nav-buttons">
+                <div className="sign-btn">
+                  <Link to="/login" onClick={closeMenu}><button>LOGIN</button></Link>
+                </div>
+                <div className="gs-btn">
+                  <Link to="/signup" onClick={closeMenu}><button>GET STARTED</button></Link>
+                </div>
               </div>
             </ul>
           </nav>

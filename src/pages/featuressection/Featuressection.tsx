@@ -16,16 +16,14 @@ function Featuressection(){
       <div className="boxes ">
         {/* box-1 */}
         <div className="box-1 bg-blue-500">
-          <div className="logo">
-            <FileText className="bg-blue-500 px-10" size={40} />
+          <div className="icon-cont">
+            <FileText className="bg-blue-500 " size={40} />
           </div>
-          <h6 className="box1-text">
-            {" "}
-            <strong>AI Resume Builder</strong>{" "}
-            <span className="fea-desc">
-              Create professional, ATS-optimised resume with modern templates
-            </span>
-          </h6>
+          <strong>AI Resume Builder</strong>
+          <br />
+          <i>
+            Create professional, ATS-optimized resumes with modern templates.
+          </i>
         </div>
 
         {/* Box-2 */}

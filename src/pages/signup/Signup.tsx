@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Rocket,
   Users,
+  Sparkles,
 } from "lucide-react";
 
 const Signup = () => {
@@ -36,8 +37,10 @@ const Signup = () => {
         <div className="signup-left">
           {/* LOGO */}
           <div className="logo">
-            <div className="logo-box"></div>
-            <h2>TechNova</h2>
+            <div className="logo-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+              <Sparkles size={22} />
+            </div>
+            <h2>Careercraft <span style={{ color: "#5d3df5" }}></span></h2>
           </div>
 
           {/* HEADING */}
@@ -47,8 +50,8 @@ const Signup = () => {
             </h1>
 
             <p>
-              Join TechNova and explore a world of possibilities to grow your
-              skills.
+              Join CareerEdge AI and explore a world of possibilities to grow your
+              career.
             </p>
 
             {/* SOCIAL BUTTONS */}

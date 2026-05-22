@@ -40,7 +40,7 @@ const ContactSection: React.FC = () => {
                 <div className="contact-icon"><Mail size={20} /></div>
                 <div>
                   <h4>Email Us</h4>
-                  <p>support@rbsga.com</p>
+                  <p>support@careeredgeai.com</p>
                 </div>
               </div>
 

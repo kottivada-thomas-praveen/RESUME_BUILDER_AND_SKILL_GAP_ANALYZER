@@ -27,6 +27,7 @@ import {
   Eye,
   LogIn,
   User,
+  Sparkles,
 } from "lucide-react";
 
 const Login = () => {
@@ -38,8 +39,10 @@ const Login = () => {
         <div className="left-section">
 
           <div className="brand">
-            <div className="brand-icon"></div>
-            <h2>YourBrand</h2>
+            <div className="brand-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+              <Sparkles size={22} />
+            </div>
+            <h2>Careercraft <span style={{ color: "#2563eb" }}>AI</span></h2>
           </div>
 
           <div className="left-content">
