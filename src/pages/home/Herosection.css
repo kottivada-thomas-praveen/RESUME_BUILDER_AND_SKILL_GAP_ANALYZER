@@ -1,0 +1,57 @@
+* {
+  /* outline: 1px solid red; */
+}
+
+.hero-section {
+  height: 800px;
+  width: 100%;
+  border: 1px solid black;
+  background-color: #101a3a;
+  display: grid;
+  grid-template-columns: 700px 700px;
+}
+
+.main-heading {
+  color: aliceblue;
+  font-size: 30px;
+  padding: 30px;
+}
+
+.main-heading h1 {
+  height: 150px;
+}
+
+.Career{
+    color: aqua;
+}
+
+.matter {
+ 
+    font-family: "Courier New", Courier, monospace;
+}
+
+.resume-btn {
+  color: white;
+  background-color: #7c3aed;
+  height: 70px;
+  width: 220px;
+  border-radius: 50px;
+  margin-top: 50px;
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.analyze-btn {
+  color: white;
+  background-color: #7c3aed;
+  height: 70px;
+  width: 220px;
+  border-radius: 50px;
+  margin-left: 20px;
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.home-img{
+    height: 100%;
+}

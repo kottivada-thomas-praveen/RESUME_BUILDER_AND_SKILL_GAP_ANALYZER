@@ -1,0 +1,125 @@
+.Features-section {
+  height: 900px;
+  width: 100%;
+  background-color: rgb(1, 17, 75);
+}
+
+.Features-section h1 {
+  padding-top: 20px;
+  text-align: center;
+  color: aliceblue;
+  font-size: 30px;
+}
+
+.box1-text {
+  font-size: 30px;
+}
+
+.logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 16px;
+  width: fit-content;
+
+  padding: 16px;
+  margin: auto;
+  width: 58px;
+  height: 58px;
+
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+
+  margin-bottom: 20px;
+  margin-top: 20px;
+}
+
+.fea-desc{
+  margin: 10px;
+}
+
+.boxes {
+  margin: 20px;
+  display: grid;
+  justify-content: space-around;
+  grid-template-rows: 320px 320px;
+  grid-template-columns: 320px 320px 320px;
+  padding: 10px;
+  font-size: 10px;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+.boxes div:hover {
+  /* box-shadow: 0 0 25px rgba(99, 102, 241, 0.5); */
+  transform: translateY(-8px);
+
+  border-color: rgba(99, 102, 241, 0.4);
+
+  box-shadow: 0 20px 40px rgba(79, 70, 229, 0.25);
+}
+
+.boxes div {    /* boxes*/
+  cursor: pointer;
+  font-size: 30px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  border-radius: 10%;
+  color: rgb(200, 188, 188);
+  letter-spacing: 2px;
+  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, #172554, #0f172a);
+  z-index: 0;
+}
+
+.icon-cont {
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 16px;
+  width: fit-content;
+
+  padding: 16px;
+  margin: auto;
+  width: 58px;
+  height: 58px;
+
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+
+  margin-bottom: 20px;
+  margin-top: 20px;
+}
+
+.box-2 i {
+  /* letter-spacing: 1px; */
+  /* word-spacing: 1px; */
+  font-size: 24px;
+}
+.box-4 i {
+  font-size: 20px;
+  word-spacing: -1px;
+}
+
+.box-6 {
+  padding: 10px;
+}
+
+strong {
+  color: white;
+}
+
+i {
+  color: aliceblue;
+}
+
+@media (max-width: 768px) {
+  .boxes {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .boxes div {
+    width: 90%;
+  }
+}
