@@ -1,16 +1,18 @@
 import axios from "axios";
 
 const Api = axios.create({
-  baseURL: "http://localhost:8080/api/auth/login",
+  baseURL: import.meta.env.https://resume-builder-and-skill-gap-analyzer-dtqz.onrender.com/api/auth/signup,
 });
 
-// Automatically inject Authorization Bearer token if it exists in localStorage
+// Add token automatically
 Api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => {
