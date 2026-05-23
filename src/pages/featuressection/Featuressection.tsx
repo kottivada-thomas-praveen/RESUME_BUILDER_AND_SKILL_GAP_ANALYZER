@@ -10,14 +10,14 @@ import {
 function Featuressection(){
     return(
         <>
-            <section className="Features-section bg-blue-800">
+            <section className="Features-section">
       <h1>Everything You Need to Get Hired</h1>
 
       <div className="boxes ">
         {/* box-1 */}
-        <div className="box-1 bg-blue-500">
+        <div className="box-1">
           <div className="icon-cont">
-            <FileText className="bg-blue-500 " size={24} />
+            <FileText size={24} />
           </div>
           <strong>AI Resume Builder</strong>
           <br />
@@ -28,9 +28,9 @@ function Featuressection(){
 
         {/* Box-2 */}
 
-        <div className="box-2 bg-blue-500">
+        <div className="box-2">
           <div className="icon-cont">
-            <LayoutGrid className="bg-blue-500 px-10" size={24}/>
+            <LayoutGrid size={24}/>
           </div>
           <strong>Skill Gap Analysis</strong>
           <br />
@@ -41,18 +41,18 @@ function Featuressection(){
         </div>
 
         {/* Box-3 */}
-        <div className="box-3 bg-blue-500">
+        <div className="box-3">
           <div className="icon-cont">
-            <BadgeCheck className="bg-blue-500 px-10" size={24}/>
+            <BadgeCheck size={24}/>
           </div>
           <strong>ATS Score Checker</strong> <br />
           <i>Improve your resume score and increase interview chances.</i>
         </div>
 
         {/* box-4 */}
-        <div className="box-4 bg-blue-500">
+        <div className="box-4">
           <div className="icon-cont">
-            <BrainCircuit className="bg-blue-500 px-10" size={24}/>
+            <BrainCircuit size={24}/>
           </div>
           <strong>Smart Recommendations</strong>
           <br />
@@ -63,9 +63,9 @@ function Featuressection(){
         </div>
 
         {/* box-5 */}
-        <div className="box-5 bg-blue-500">
+        <div className="box-5">
           <div className="icon-cont">
-            <Eye className="bg-blue-500 px-10" size={24}/>
+            <Eye size={24}/>
           </div>
           <strong>Real-time Preview</strong>
           <br />
@@ -73,9 +73,9 @@ function Featuressection(){
         </div>
 
         {/* Box-6 */}
-        <div className="box-6 bg-blue-500">
+        <div className="box-6">
           <div className="icon-cont">
-            <FileDown className="bg-blue-500 px-10" size={24}/>
+            <FileDown size={24}/>
           </div>
           <strong>Multi-template Export</strong> <br />
           <i>Export your resume in PDF with elegant professional designs.</i>
@@ -86,4 +86,4 @@ function Featuressection(){
     )
 }
 
-export default Featuressection;
+export default Featuressection;

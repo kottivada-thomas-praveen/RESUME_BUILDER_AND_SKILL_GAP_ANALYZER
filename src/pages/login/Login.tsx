@@ -32,6 +32,8 @@ import {
   LogIn,
   User,
   Sparkles,
+  X,
+  Key,
 } from "lucide-react";
 
 const Login = () => {
@@ -43,6 +45,16 @@ const Login = () => {
   const [errorMsg, setErrorMsg] = useState("");
   const [isTypingPassword, setIsTypingPassword] = useState(false);
 
+  // Forgot password modal state
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [otp, setOtp] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [forgotStep, setForgotStep] = useState(1); // 1 = Enter Email, 2 = Enter Token & Reset
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -51,7 +63,13 @@ const Login = () => {
     try {
       const response = await Api.post("/auth/login", { email, password });
       
-      if (response.data && response.data.token) {
+      if (response.data && response.data.data && response.data.data.token) {
+        localStorage.setItem("token", response.data.data.token);
+        localStorage.setItem("name", response.data.data.name || "");
+        localStorage.setItem("email", response.data.data.email || email);
+        localStorage.setItem("role", response.data.data.role || "USER");
+      } else if (response.data && response.data.token) {
+        // Fallback for simple direct wrapper response
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("name", response.data.name || "");
         localStorage.setItem("email", response.data.email || email);
@@ -67,6 +85,42 @@ const Login = () => {
       setErrorMsg(msg);
     }
   };
+
+  const handleForgotSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    setForgotError("");
+    setForgotSuccess("");
+
+    if (forgotStep === 1) {
+      try {
+        const response = await Api.post("/auth/forgot-password", { email: forgotEmail });
+        setForgotLoading(false);
+        setForgotSuccess("We found the account! A secure OTP reset token has been generated.");
+        // Transition to Step 2
+        setForgotStep(2);
+      } catch (error: any) {
+        setForgotLoading(false);
+        const msg = error.response?.data?.message || "User not found with this email address.";
+        setForgotError(msg);
+      }
+    } else {
+      try {
+        await Api.post("/auth/reset-password", { token: otp, newPassword: newPassword });
+        setForgotLoading(false);
+        setForgotSuccess("Password updated successfully! You can now log in.");
+        // Short delay, then close modal
+        setTimeout(() => {
+          setShowForgotModal(false);
+        }, 1500);
+      } catch (error: any) {
+        setForgotLoading(false);
+        const msg = error.response?.data?.message || "Invalid or expired OTP reset token.";
+        setForgotError(msg);
+      }
+    }
+  };
+
   return (
     <div className="login-page">
       <div className="login-container">
@@ -201,7 +255,15 @@ const Login = () => {
                 )}
               </div>
 
-              <p className="forgot-password">
+              <p className="forgot-password" onClick={() => {
+                setShowForgotModal(true);
+                setForgotStep(1);
+                setForgotEmail("");
+                setOtp("");
+                setNewPassword("");
+                setForgotError("");
+                setForgotSuccess("");
+              }}>
                 Forgot password?
               </p>
 
@@ -261,6 +323,99 @@ const Login = () => {
           </div>
         </div>
       </div>
+
+      {/* DYNAMIC FORGOT PASSWORD MODAL OVERLAY */}
+      {showForgotModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            
+            <div className="modal-header">
+              <h2>Reset Password</h2>
+              <button className="close-modal-btn" onClick={() => setShowForgotModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleForgotSubmit}>
+              <div className="modal-body">
+                
+                {forgotError && (
+                  <div className="error-message" style={{ color: "#ef4444", marginBottom: "15px", fontSize: "13px", fontWeight: "500" }}>
+                    ⚠️ {forgotError}
+                  </div>
+                )}
+                {forgotSuccess && (
+                  <div className="success-message" style={{ color: "#22c55e", marginBottom: "15px", fontSize: "13px", fontWeight: "500" }}>
+                    ✔ {forgotSuccess}
+                  </div>
+                )}
+
+                {forgotStep === 1 ? (
+                  <>
+                    <p>Enter the email address associated with your account to verify your profile and send a secure OTP reset token.</p>
+                    
+                    <div className="input-group">
+                      <label>Account Email</label>
+                      <div className="input-box">
+                        <Mail size={18} />
+                        <input
+                          type="email"
+                          placeholder="name@example.com"
+                          value={forgotEmail}
+                          onChange={(e) => setForgotEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p>Account verified! Check your server log output for the generated OTP Reset Token and enter it below with your new password.</p>
+                    
+                    <div className="input-group">
+                      <label>OTP Reset Token</label>
+                      <div className="input-box">
+                        <Key size={18} />
+                        <input
+                          type="text"
+                          placeholder="Paste OTP / reset token"
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="input-group" style={{ marginTop: "15px" }}>
+                      <label>New Secure Password</label>
+                      <div className="input-box">
+                        <Lock size={18} />
+                        <input
+                          type="password"
+                          placeholder="Min 6 characters"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="modal-footer">
+                <button type="button" className="modal-cancel-btn" onClick={() => setShowForgotModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="login-btn" style={{ width: "auto", padding: "0 20px" }} disabled={forgotLoading}>
+                  {forgotLoading ? "Processing..." : forgotStep === 1 ? "Verify & Send OTP" : "Reset Password"}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
