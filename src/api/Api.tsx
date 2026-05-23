@@ -1,8 +1,7 @@
 import axios from "axios";
 
 const Api = axios.create({
-  baseURL: import.meta.env.https://resume-builder-and-skill-gap-analyzer-dtqz.onrender.com/api/auth/signup,
-});
+baseURL: import.meta.env.VITE_API_URL});
 
 // Add token automatically
 Api.interceptors.request.use(
