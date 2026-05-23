@@ -5,6 +5,7 @@ import Featuressection from "../featuressection/Featuressection";
 import ServicesSection from "./servicesection/Services";
 import AboutSection from "./about/About";
 import ContactSection from "./contact/Contact";
+import API from "../../api/Api";
 
 const Home: React.FC = () => {
   const location = useLocation();
@@ -26,6 +27,18 @@ const Home: React.FC = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [location]);
+
+    useEffect(() => {
+
+    API.get("/test")
+      .then((response) => {
+        console.log(response.data);
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+
+  }, []);
 
   return (
     <div className="home-page-container">
@@ -51,5 +64,19 @@ const Home: React.FC = () => {
     </div>
   );
 };
+
+
+
+// function Home() {
+
+
+
+//   return (
+//     <div>
+//       Home Page
+//     </div>
+//   );
+// }
+
 
 export default Home;

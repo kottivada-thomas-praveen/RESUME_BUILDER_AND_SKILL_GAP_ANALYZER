@@ -1,6 +1,8 @@
 
 
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Api from "../../api/Api";
 import "./Signup.css";
 import {
   Mail,
@@ -8,26 +10,43 @@ import {
   User,
   Eye,
   EyeOff,
-  ShieldCheck,
-  Rocket,
-  Users,
   Sparkles,
 } from "lucide-react";
 
 const Signup = () => {
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isTypingPassword, setIsTypingPassword] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setLoading(true);
+    setErrorMsg("");
 
-    // Simulate API request
-    setTimeout(() => {
+    try {
+      const response = await Api.post("/auth/signup", { name, email, password });
+      
+      if (response.data && response.data.token) {
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("name", response.data.name || name);
+        localStorage.setItem("email", response.data.email || email);
+        localStorage.setItem("role", response.data.role || "USER");
+      }
+      
       setLoading(false);
       alert("Account created successfully!");
-    }, 2500);
+      navigate("/");
+    } catch (error: any) {
+      setLoading(false);
+      console.error(error);
+      const msg = error.response?.data?.message || "Registration failed. Please try again.";
+      setErrorMsg(msg);
+    }
   };
 
   return (
@@ -56,20 +75,18 @@ const Signup = () => {
 
             {/* SOCIAL BUTTONS */}
             <div className="social-buttons">
-              <button className="social-btn">
+              <button type="button" className="social-btn" aria-label="Sign up with Google">
                 <img
                   src="https://cdn-icons-png.flaticon.com/512/281/281764.png"
                   alt="google"
                 />
-                Sign up with Google
               </button>
 
-              <button className="social-btn">
+              <button type="button" className="social-btn" aria-label="Sign up with GitHub">
                 <img
                   src="https://cdn-icons-png.flaticon.com/512/25/25231.png"
                   alt="github"
                 />
-                Sign up with GitHub
               </button>
             </div>
 
@@ -80,16 +97,34 @@ const Signup = () => {
               <span></span>
             </div>
 
+            {errorMsg && (
+              <div className="error-message" style={{ color: "#ef4444", marginBottom: "15px", fontSize: "14px", fontWeight: "500", textAlign: "center" }}>
+                ⚠️ {errorMsg}
+              </div>
+            )}
+
             {/* FORM */}
             <form onSubmit={handleSubmit}>
               <div className="input-box">
                 <User size={20} />
-                <input type="text" placeholder="Full name" required />
+                <input 
+                  type="text" 
+                  placeholder="Full name" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required 
+                />
               </div>
 
               <div className="input-box">
                 <Mail size={20} />
-                <input type="email" placeholder="Email address" required />
+                <input 
+                  type="email" 
+                  placeholder="Email address" 
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required 
+                />
               </div>
 
               <div className="input-box">
@@ -98,6 +133,10 @@ const Signup = () => {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => setIsTypingPassword(true)}
+                  onBlur={() => setIsTypingPassword(false)}
                   required
                 />
 
@@ -110,11 +149,29 @@ const Signup = () => {
               </div>
 
               {/* PASSWORD RULES */}
-              <div className="password-rules">
-                <p>✔ At least 8 characters</p>
-                <p>✔ Includes a number</p>
-                <p>✔ Includes an uppercase letter</p>
-              </div>
+              {(isTypingPassword || password.length > 0) && (
+                <div className="password-rules" style={{
+                  display: "flex",
+                  flexDirection: "row",
+                  gap: "10px",
+                  marginTop: "8px",
+                  fontSize: "12px",
+                  color: "#64748b",
+                  flexWrap: "wrap",
+                  justifyContent: "flex-start",
+                  alignItems: "center"
+                }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px", color: password.length >= 8 ? "#22c55e" : "#94a3b8", transition: "color 0.2s" }}>
+                    {password.length >= 8 ? "✔" : "○"} 8+ chars
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px", color: /\d/.test(password) ? "#22c55e" : "#94a3b8", transition: "color 0.2s" }}>
+                    {/\d/.test(password) ? "✔" : "○"} Number
+                  </span>
+                  <span style={{ display: "flex", alignItems: "center", gap: "4px", color: /[A-Z]/.test(password) ? "#22c55e" : "#94a3b8", transition: "color 0.2s" }}>
+                    {/[A-Z]/.test(password) ? "✔" : "○"} Uppercase
+                  </span>
+                </div>
+              )}
 
               {/* BUTTON */}
               <button type="submit" className="create-btn" disabled={loading}>
@@ -131,28 +188,7 @@ const Signup = () => {
 
             {/* SIGN IN */}
             <div className="signin-text">
-              Already have an account? <span>Sign in</span>
-            </div>
-
-            {/* FEATURES */}
-            <div className="features">
-              <div className="feature-box">
-                <ShieldCheck size={28} />
-                <h4>Secure & Private</h4>
-                <p>Your data is safe with us.</p>
-              </div>
-
-              <div className="feature-box">
-                <Rocket size={28} />
-                <h4>Fast & Easy</h4>
-                <p>Get started in just a few steps.</p>
-              </div>
-
-              <div className="feature-box">
-                <Users size={28} />
-                <h4>Join Community</h4>
-                <p>Connect and learn with others.</p>
-              </div>
+              Already have an account? <span style={{ cursor: "pointer" }} onClick={() => navigate("/login")}>Sign in</span>
             </div>
           </div>
         </div>
@@ -171,19 +207,6 @@ const Signup = () => {
               alt="illustration"
             />
           </div>
-        </div>
-      </div>
-
-      {/* FOOTER */}
-      <div className="brands">
-        <p>Trusted by learners and teams worldwide</p>
-
-        <div className="brand-logos">
-          <span>Google</span>
-          <span>Microsoft</span>
-          <span>GitHub</span>
-          <span>Slack</span>
-          <span>Dropbox</span>
         </div>
       </div>
     </div>

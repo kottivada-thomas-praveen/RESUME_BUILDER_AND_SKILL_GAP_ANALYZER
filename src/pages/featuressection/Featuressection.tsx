@@ -17,7 +17,7 @@ function Featuressection(){
         {/* box-1 */}
         <div className="box-1 bg-blue-500">
           <div className="icon-cont">
-            <FileText className="bg-blue-500 " size={40} />
+            <FileText className="bg-blue-500 " size={24} />
           </div>
           <strong>AI Resume Builder</strong>
           <br />
@@ -30,7 +30,7 @@ function Featuressection(){
 
         <div className="box-2 bg-blue-500">
           <div className="icon-cont">
-            <LayoutGrid className="bg-blue-500 px-10" size={40}/>
+            <LayoutGrid className="bg-blue-500 px-10" size={24}/>
           </div>
           <strong>Skill Gap Analysis</strong>
           <br />
@@ -43,7 +43,7 @@ function Featuressection(){
         {/* Box-3 */}
         <div className="box-3 bg-blue-500">
           <div className="icon-cont">
-            <BadgeCheck className="bg-blue-500 px-10" size={40}/>
+            <BadgeCheck className="bg-blue-500 px-10" size={24}/>
           </div>
           <strong>ATS Score Checker</strong> <br />
           <i>Improve your resume score and increase interview chances.</i>
@@ -52,7 +52,7 @@ function Featuressection(){
         {/* box-4 */}
         <div className="box-4 bg-blue-500">
           <div className="icon-cont">
-            <BrainCircuit className="bg-blue-500 px-10" size={40}/>
+            <BrainCircuit className="bg-blue-500 px-10" size={24}/>
           </div>
           <strong>Smart Recommendations</strong>
           <br />
@@ -65,7 +65,7 @@ function Featuressection(){
         {/* box-5 */}
         <div className="box-5 bg-blue-500">
           <div className="icon-cont">
-            <Eye className="bg-blue-500 px-10" size={40}/>
+            <Eye className="bg-blue-500 px-10" size={24}/>
           </div>
           <strong>Real-time Preview</strong>
           <br />
@@ -75,7 +75,7 @@ function Featuressection(){
         {/* Box-6 */}
         <div className="box-6 bg-blue-500">
           <div className="icon-cont">
-            <FileDown className="bg-blue-500 px-10" size={40}/>
+            <FileDown className="bg-blue-500 px-10" size={24}/>
           </div>
           <strong>Multi-template Export</strong> <br />
           <i>Export your resume in PDF with elegant professional designs.</i>

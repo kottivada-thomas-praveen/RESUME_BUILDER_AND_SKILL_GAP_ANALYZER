@@ -53,11 +53,11 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  border-radius: 16px;
-  width: 64px;
-  height: 6px;
+  border-radius: 12px;
+  width: 48px;
+  height: 48px;
   background: linear-gradient(135deg, #2563eb, #7c3aed);
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   color: white;
   transition: transform 0.3s ease;
 }
@@ -109,14 +109,4 @@ i {
   }
 }
 
-@media (min-width: 1025px) {
-  .icon-cont {
-    width: 68px;
-    height: 68px;
-    border-radius: 18px;
-  }
-  .icon-cont svg {
-    width: 32px;
-    height: 32px;
-  }
-}
+

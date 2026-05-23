@@ -15,6 +15,18 @@ function Navbar(){
         setMenuActive(false);
     };
 
+    const token = localStorage.getItem("token");
+    const name = localStorage.getItem("name");
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("name");
+        localStorage.removeItem("email");
+        localStorage.removeItem("role");
+        closeMenu();
+        navigate("/");
+    };
+
     return(
         <div>
           <nav className="navbar">
@@ -34,14 +46,25 @@ function Navbar(){
               <li><Link to="/#about" onClick={closeMenu}>ABOUT</Link></li>
               <li><Link to="/#contact" onClick={closeMenu}>CONTACT US</Link></li>
               
-              <div className="nav-buttons">
-                <div className="sign-btn">
-                  <Link to="/login" onClick={closeMenu}><button>LOGIN</button></Link>
+              {token ? (
+                <div className="nav-buttons" style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+                  <span className="user-greeting" style={{ color: "#2563eb", fontWeight: "600", fontSize: "14px", textTransform: "uppercase" }}>
+                    Hi, {name || "User"}
+                  </span>
+                  <div className="sign-btn">
+                    <button onClick={handleLogout}>LOGOUT</button>
+                  </div>
                 </div>
-                <div className="gs-btn">
-                  <Link to="/signup" onClick={closeMenu}><button>GET STARTED</button></Link>
+              ) : (
+                <div className="nav-buttons">
+                  <div className="sign-btn">
+                    <Link to="/login" onClick={closeMenu}><button>LOGIN</button></Link>
+                  </div>
+                  <div className="gs-btn">
+                    <Link to="/signup" onClick={closeMenu}><button>GET STARTED</button></Link>
+                  </div>
                 </div>
-              </div>
+              )}
             </ul>
           </nav>
         </div>

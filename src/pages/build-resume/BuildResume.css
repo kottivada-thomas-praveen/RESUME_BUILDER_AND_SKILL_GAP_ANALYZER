@@ -5,6 +5,7 @@
   background-color: #0b1120;
   color: #f8fafc;
   min-height: 100vh;
+  margin-top: 63px;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -922,9 +923,17 @@
   .navbar,
   .builder-toolbar,
   .editor-pane,
-  .preview-header,
-  .preview-pane {
+  .preview-header {
     display: none !important;
+  }
+
+  .preview-pane {
+    display: block !important;
+    background: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
   }
 
   /* Make sure the page container occupies full screen and fits A4 */
@@ -962,3 +971,4 @@
     page-break-inside: avoid !important;
   }
 }
+
