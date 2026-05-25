@@ -39,7 +39,7 @@ const Login = () => {
     setErrorMsg("");
 
     try {
-      const response = await Api.post("/auth/login", { email, password });
+      const response = await Api.post("/api/auth/login", { email, password });
       
       if (response.data && response.data.data && response.data.data.token) {
         localStorage.setItem("token", response.data.data.token);

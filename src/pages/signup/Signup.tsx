@@ -29,7 +29,7 @@ const Signup = () => {
     setErrorMsg("");
 
     try {
-      const response = await Api.post("/auth/signup", { name, email, password });
+      const response = await Api.post("/api/auth/signup", { name, email, password });
       
       if (response.data && response.data.token) {
         localStorage.setItem("token", response.data.token);
