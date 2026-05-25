@@ -1,25 +1,3 @@
-// import "./Login.css";
-// import { Mail, Lock, Form } from "lucide-react";
-// import {Email, Password,SecurityShield} from "lucide-react"
-
-// const Login = () => {
-//   return (
-//     <div className="login-page">
-//       <div className="left-side">
-//         <h1>rbsga</h1><br />
-//         <h1>Welcome Back!</h1><br />
-//         <h2>Sign in to continue to your account and explore more</h2>
-//         <img src="src\assets\undraw_remote-worker_0l91.svg" alt="" />
-        
-//       </div>
-//       <div className="right-side"></div>
-//     </div>
-//   );
-// };
-
-// export default Login;
-
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Api from "../../api/Api";
@@ -94,7 +72,7 @@ const Login = () => {
 
     if (forgotStep === 1) {
       try {
-        const response = await Api.post("/auth/forgot-password", { email: forgotEmail });
+        await Api.post("/auth/forgot-password", { email: forgotEmail });
         setForgotLoading(false);
         setForgotSuccess("We found the account! A secure OTP reset token has been generated.");
         // Transition to Step 2

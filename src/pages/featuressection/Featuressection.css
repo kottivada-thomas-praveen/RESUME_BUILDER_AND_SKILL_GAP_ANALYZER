@@ -26,7 +26,7 @@
   gap: 30px;
 }
 
-.boxes div {    /* individual card */
+.boxes > div {    /* individual card */
   cursor: pointer;
   padding: 40px 30px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -43,7 +43,7 @@
   min-height: 300px;
 }
 
-.boxes div:hover {
+.boxes > div:hover {
   transform: translateY(-8px);
   border-color: rgba(59, 130, 246, 0.4);
   box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
@@ -62,7 +62,7 @@
   transition: transform 0.3s ease;
 }
 
-.boxes div:hover .icon-cont {
+.boxes > div:hover .icon-cont {
   transform: scale(1.1);
 }
 
@@ -103,7 +103,7 @@ i {
     gap: 20px;
   }
 
-  .boxes div {
+  .boxes > div {
     min-height: auto;
     padding: 30px 24px;
   }
