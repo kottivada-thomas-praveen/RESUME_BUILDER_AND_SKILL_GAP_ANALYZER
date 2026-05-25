@@ -69,7 +69,7 @@ const Signup = () => {
             </h1>
 
             <p>
-              Join CareerEdge AI and explore a world of possibilities to grow your
+              Join Careercraft and explore a world of possibilities to grow your
               career.
             </p>
 

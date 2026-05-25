@@ -27,22 +27,3 @@ function App(){
 }
 
 export default App;
-
-
-// import { BrowserRouter, Routes, Route } from "react-router-dom";
-// import Navbar from "./components/navbar/Navbar";
-// import Signup from "./pages/signup/Signup";
-
-// function App() {
-//   return (
-//     <BrowserRouter>
-//       <Navbar />
-
-//       <Routes>
-//         <Route path="/signup" element={<Signup />} />
-//       </Routes>
-//     </BrowserRouter>
-//   );
-// }
-
-// export default App;
