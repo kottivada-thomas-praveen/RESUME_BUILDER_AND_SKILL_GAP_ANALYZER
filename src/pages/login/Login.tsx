@@ -51,6 +51,16 @@ const Login = () => {
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState("");
 
+  // Advanced features states
+  const [showMockOAuthModal, setShowMockOAuthModal] = useState(false);
+  const [mockOAuthProvider, setMockOAuthProvider] = useState("");
+
+  const isGoogleConfigured = !!import.meta.env.VITE_GOOGLE_CLIENT_ID && 
+    !import.meta.env.VITE_GOOGLE_CLIENT_ID.includes("your_google_client_id_here");
+
+  const isGithubConfigured = !!import.meta.env.VITE_GITHUB_CLIENT_ID && 
+    !import.meta.env.VITE_GITHUB_CLIENT_ID.includes("your_github_client_id_here");
+
   useEffect(() => {
     // Check for GitHub OAuth Callback Code in URL
     const urlParams = new URLSearchParams(window.location.search);
@@ -84,6 +94,7 @@ const Login = () => {
 
     // Load Google Sign-In SDK
     const loadGoogleSdk = () => {
+      if (!isGoogleConfigured) return;
       const script = document.createElement("script");
       script.src = "https://accounts.google.com/gsi/client";
       script.async = true;
@@ -91,7 +102,7 @@ const Login = () => {
       script.onload = () => {
         if ((window as any).google) {
           (window as any).google.accounts.id.initialize({
-            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "your_google_client_id.apps.googleusercontent.com",
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
             callback: handleGoogleLoginResponse,
           });
 
@@ -148,9 +159,45 @@ const Login = () => {
   };
 
   const handleGithubLoginClick = () => {
-    const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID || "your_github_client_id_here";
-    const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || "http://localhost:5173/login";
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user%20user:email`;
+    if (isGithubConfigured) {
+      const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+      const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || "http://localhost:5173/login";
+      window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user%20user:email`;
+    } else {
+      handleMockOAuthClick("GitHub");
+    }
+  };
+
+  const handleMockOAuthClick = (provider: string) => {
+    setMockOAuthProvider(provider);
+    setShowMockOAuthModal(true);
+  };
+
+  const handleMockOAuthSubmit = async () => {
+    setLoading(true);
+    setShowMockOAuthModal(false);
+    setErrorMsg("");
+    try {
+      const response = await Api.post("/api/auth/google-login", {
+        idToken: `mock-${mockOAuthProvider.toLowerCase()}-id-token-123456`,
+        email: `${mockOAuthProvider.toLowerCase()}_demo@careercraft.com`,
+        name: `${mockOAuthProvider} Demo User`
+      });
+
+      if (response.data && response.data.data && response.data.data.token) {
+        localStorage.setItem("token", response.data.data.token);
+        localStorage.setItem("name", response.data.data.name || `${mockOAuthProvider} Demo User`);
+        localStorage.setItem("email", response.data.data.email || `${mockOAuthProvider.toLowerCase()}_demo@careercraft.com`);
+        localStorage.setItem("role", response.data.data.role || "USER");
+      }
+
+      setLoading(false);
+      navigate("/");
+    } catch (err: any) {
+      setLoading(false);
+      console.error("Mock Login Error:", err);
+      setErrorMsg(err.response?.data?.message || "Mock authentication failed. Please try again.");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -389,11 +436,49 @@ const Login = () => {
 
             {/* SOCIAL BUTTONS */}
             <div className="social-buttons" style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%", alignItems: "center", marginTop: "15px" }}>
-              <div id="google-signin-btn" style={{ height: "40px" }}></div>
+              {isGoogleConfigured ? (
+                <div id="google-signin-btn" style={{ height: "40px" }}></div>
+              ) : (
+                <button 
+                  type="button" 
+                  aria-label="Continue with Google (Demo Mode)" 
+                  onClick={() => handleMockOAuthClick("Google")}
+                  style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    width: "280px", 
+                    height: "40px", 
+                    border: "1px solid #dadce0", 
+                    borderRadius: "4px", 
+                    background: "white", 
+                    cursor: "pointer", 
+                    padding: "0 12px",
+                    transition: "background-color 0.2s, border-color 0.2s"
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = "#f8f9fa";
+                    e.currentTarget.style.borderColor = "#ccc";
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = "white";
+                    e.currentTarget.style.borderColor = "#dadce0";
+                  }}
+                >
+                  <img
+                    src="https://cdn-icons-png.flaticon.com/512/300/300221.png"
+                    alt="google"
+                    style={{ width: "18px", height: "18px", marginRight: "10px" }}
+                  />
+                  <span style={{ fontSize: "14px", fontWeight: "500", color: "#3c4043", fontFamily: "Roboto, arial, sans-serif" }}>
+                    Continue with Google
+                  </span>
+                </button>
+              )}
               
               <button 
                 type="button" 
-                aria-label="Sign in with GitHub" 
+                aria-label={isGithubConfigured ? "Continue with GitHub" : "Continue with GitHub (Demo Mode)"}
                 onClick={handleGithubLoginClick}
                 style={{ 
                   display: "flex", 
@@ -526,6 +611,55 @@ const Login = () => {
               </div>
             </form>
 
+          </div>
+        </div>
+      )}
+
+      {/* MOCK OAUTH POPUP MODAL */}
+      {showMockOAuthModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>{mockOAuthProvider} Authentication</h2>
+              <button className="close-modal-btn" onClick={() => setShowMockOAuthModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ textAlign: 'center', padding: '10px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+                <img 
+                  src={mockOAuthProvider === "Google" ? "https://cdn-icons-png.flaticon.com/512/300/300221.png" : "https://cdn-icons-png.flaticon.com/512/25/25231.png"} 
+                  alt={mockOAuthProvider} 
+                  style={{ width: '48px', height: '48px' }}
+                />
+              </div>
+              <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.6' }}>
+                Google & GitHub OAuth are fully integrated! To use your own live client keys, configure your `.env` variables.
+              </p>
+              <div style={{ background: '#f8fafc', padding: '12px', borderRadius: '10px', margin: '15px 0', border: '1px solid #e2e8f0', fontSize: '13px', color: '#64748b', textAlign: 'left' }}>
+                <strong>Simulated OAuth Profile:</strong><br />
+                📧 {mockOAuthProvider.toLowerCase()}_demo@careercraft.com<br />
+                👤 {mockOAuthProvider} Demo User
+              </div>
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              <button 
+                type="button" 
+                className="modal-cancel-btn" 
+                onClick={() => setShowMockOAuthModal(false)}
+                style={{ flex: 1, padding: '12px', fontSize: '14px', borderRadius: '10px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="login-btn" 
+                onClick={handleMockOAuthSubmit}
+                style={{ flex: 1, padding: '12px', fontSize: '14px', borderRadius: '10px', marginTop: 0, cursor: 'pointer' }}
+              >
+                Simulate 1-Click Login
+              </button>
+            </div>
           </div>
         </div>
       )}
