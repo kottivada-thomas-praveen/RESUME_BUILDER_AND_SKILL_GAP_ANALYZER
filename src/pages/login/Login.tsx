@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Api from "../../api/Api";
 import "./Login.css";
@@ -13,6 +13,24 @@ import {
   X,
   Key,
 } from "lucide-react";
+
+const decodeJwt = (token: string) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      window
+        .atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Failed to decode JWT:", error);
+    return null;
+  }
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -32,6 +50,108 @@ const Login = () => {
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotError, setForgotError] = useState("");
   const [forgotSuccess, setForgotSuccess] = useState("");
+
+  useEffect(() => {
+    // Check for GitHub OAuth Callback Code in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const githubCode = urlParams.get("code");
+
+    if (githubCode) {
+      const handleGithubCallback = async () => {
+        setLoading(true);
+        setErrorMsg("");
+        try {
+          const response = await Api.post("/api/auth/github-login", { code: githubCode });
+          if (response.data && response.data.data && response.data.data.token) {
+            localStorage.setItem("token", response.data.data.token);
+            localStorage.setItem("name", response.data.data.name || "");
+            localStorage.setItem("email", response.data.data.email || "");
+            localStorage.setItem("role", response.data.data.role || "USER");
+          }
+          setLoading(false);
+          // Remove query params from URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+          navigate("/");
+        } catch (err: any) {
+          setLoading(false);
+          console.error("GitHub Login Error:", err);
+          setErrorMsg(err.response?.data?.message || "GitHub authentication failed. Please try again.");
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      };
+      handleGithubCallback();
+    }
+
+    // Load Google Sign-In SDK
+    const loadGoogleSdk = () => {
+      const script = document.createElement("script");
+      script.src = "https://accounts.google.com/gsi/client";
+      script.async = true;
+      script.defer = true;
+      script.onload = () => {
+        if ((window as any).google) {
+          (window as any).google.accounts.id.initialize({
+            client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "your_google_client_id.apps.googleusercontent.com",
+            callback: handleGoogleLoginResponse,
+          });
+
+          // Render the Google Button
+          const btnElem = document.getElementById("google-signin-btn");
+          if (btnElem) {
+            (window as any).google.accounts.id.renderButton(btnElem, {
+              type: "standard",
+              theme: "filled_blue",
+              size: "large",
+              text: "continue_with",
+              shape: "rectangular",
+              width: "280"
+            });
+          }
+        }
+      };
+      document.body.appendChild(script);
+    };
+
+    loadGoogleSdk();
+  }, [navigate]);
+
+  const handleGoogleLoginResponse = async (googleResponse: any) => {
+    setLoading(true);
+    setErrorMsg("");
+    try {
+      const idToken = googleResponse.credential;
+      const decoded = decodeJwt(idToken);
+      
+      const email = decoded?.email || "";
+      const name = decoded?.name || "Google User";
+
+      const response = await Api.post("/api/auth/google-login", {
+        idToken: idToken,
+        email: email,
+        name: name
+      });
+
+      if (response.data && response.data.data && response.data.data.token) {
+        localStorage.setItem("token", response.data.data.token);
+        localStorage.setItem("name", response.data.data.name || name);
+        localStorage.setItem("email", response.data.data.email || email);
+        localStorage.setItem("role", response.data.data.role || "USER");
+      }
+
+      setLoading(false);
+      navigate("/");
+    } catch (err: any) {
+      setLoading(false);
+      console.error("Google Login Error:", err);
+      setErrorMsg(err.response?.data?.message || "Google authentication failed. Please try again.");
+    }
+  };
+
+  const handleGithubLoginClick = () => {
+    const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID || "your_github_client_id_here";
+    const redirectUri = import.meta.env.VITE_GITHUB_REDIRECT_URI || "http://localhost:5173/login";
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user%20user:email`;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +192,7 @@ const Login = () => {
 
     if (forgotStep === 1) {
       try {
-        await Api.post("/auth/forgot-password", { email: forgotEmail });
+        await Api.post("/api/auth/forgot-password", { email: forgotEmail });
         setForgotLoading(false);
         setForgotSuccess("We found the account! A secure OTP reset token has been generated.");
         // Transition to Step 2
@@ -84,7 +204,7 @@ const Login = () => {
       }
     } else {
       try {
-        await Api.post("/auth/reset-password", { token: otp, newPassword: newPassword });
+        await Api.post("/api/auth/reset-password", { token: otp, newPassword: newPassword });
         setForgotLoading(false);
         setForgotSuccess("Password updated successfully! You can now log in.");
         // Short delay, then close modal
@@ -268,29 +388,44 @@ const Login = () => {
             </div>
 
             {/* SOCIAL BUTTONS */}
-            <div className="social-buttons">
-
-              <button type="button" aria-label="Sign in with Google">
+            <div className="social-buttons" style={{ display: "flex", flexDirection: "column", gap: "12px", width: "100%", alignItems: "center", marginTop: "15px" }}>
+              <div id="google-signin-btn" style={{ height: "40px" }}></div>
+              
+              <button 
+                type="button" 
+                aria-label="Sign in with GitHub" 
+                onClick={handleGithubLoginClick}
+                style={{ 
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "center", 
+                  width: "280px", 
+                  height: "40px", 
+                  border: "1px solid #dadce0", 
+                  borderRadius: "4px", 
+                  background: "white", 
+                  cursor: "pointer", 
+                  padding: "0 12px",
+                  transition: "background-color 0.2s, border-color 0.2s"
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = "#f8f9fa";
+                  e.currentTarget.style.borderColor = "#ccc";
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = "white";
+                  e.currentTarget.style.borderColor = "#dadce0";
+                }}
+              >
                 <img
-                  src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png"
-                  alt="google"
+                  src="https://cdn-icons-png.flaticon.com/512/25/25231.png"
+                  alt="github"
+                  style={{ width: "18px", height: "18px", marginRight: "10px" }}
                 />
+                <span style={{ fontSize: "14px", fontWeight: "500", color: "#3c4043", fontFamily: "Roboto, arial, sans-serif" }}>
+                  Continue with GitHub
+                </span>
               </button>
-
-              <button type="button" aria-label="Sign in with Microsoft">
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/732/732221.png"
-                  alt="microsoft"
-                />
-              </button>
-
-              <button type="button" aria-label="Sign in with Apple">
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/0/747.png"
-                  alt="apple"
-                />
-              </button>
-
             </div>
 
             <div className="safe-text">
