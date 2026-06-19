@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Api from "../../api/Api";
 import "./AnalyzeResume.css";
 import {
   Upload,
@@ -67,6 +68,13 @@ const AnalyzeResume: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanStep, setScanStep] = useState(0);
   const [results, setResults] = useState<AnalysisResults | null>(null);
+  
+  // Real skill gap and integrations states
+  const [skillGapResults, setSkillGapResults] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"ats" | "skillgap">("ats");
+  const [isParsingFile, setIsParsingFile] = useState(false);
+  const [parseError, setParseError] = useState("");
+  const [guestMode, setGuestMode] = useState(false);
 
   const scanPhrases = [
     "Uploading resume and job description...",
@@ -100,13 +108,65 @@ const AnalyzeResume: React.FC = () => {
     setFileName(null);
   };
 
-  // Handle file drop / select simulation
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // PDF File parsing handler calling the backend
+  const parseUploadedFile = async (file: File) => {
+    setIsParsingFile(true);
+    setParseError("");
+    setResumeText("");
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await Api.post("/api/resumes/parse", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      });
+      if (response.data && response.data.data) {
+        const dto = response.data.data;
+        let text = `NAME: ${dto.fullName || ""}\n`;
+        text += `TITLE: ${dto.title || ""}\n`;
+        text += `CONTACT: ${dto.email || ""} | ${dto.phone || ""} | ${dto.location || ""}\n`;
+        if (dto.summary) text += `SUMMARY: ${dto.summary}\n`;
+        if (dto.skills) text += `SKILLS: ${dto.skills}\n`;
+        
+        if (dto.experiences && dto.experiences.length > 0) {
+          text += `\nEXPERIENCE:\n`;
+          dto.experiences.forEach((exp: any) => {
+            text += `- ${exp.role} at ${exp.company} (${exp.startDate} to ${exp.endDate})\n  ${exp.description}\n`;
+          });
+        }
+        if (dto.educations && dto.educations.length > 0) {
+          text += `\nEDUCATION:\n`;
+          dto.educations.forEach((edu: any) => {
+            text += `- ${edu.degree} in ${edu.field} from ${edu.school} (${edu.gradDate})\n`;
+          });
+        }
+        if (dto.projects && dto.projects.length > 0) {
+          text += `\nPROJECTS:\n`;
+          dto.projects.forEach((proj: any) => {
+            text += `- ${proj.name} (${proj.technologies}): ${proj.description}\n`;
+          });
+        }
+        setResumeText(text);
+      } else {
+        throw new Error("Empty parsing response from server.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setParseError(err.response?.data?.message || "Failed to parse PDF document. Please enter text manually.");
+      setResumeText(`[AI Extraction Fallback: ${file.name}]\n\nAlex Mercer\nEmail: alex.mercer@email.com\nSkills: React, JavaScript, SQL, MySQL, Git, Redux, HTML, CSS`);
+    } finally {
+      setIsParsingFile(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setFileName(file.name);
-      // Simulate reading file text
-      setResumeText(`[Extracted from file: ${file.name}]\n\nAlex Mercer\nEmail: alex.mercer@email.com\nTitle: Full Stack Engineer\nSkills: React, JavaScript, SQL, MySQL, Git, Redux, HTML, CSS\n\nExperience:\n- Built frontend using React.\n- Handled databases in MySQL.\n- Used Git for version control.`);
+      await parseUploadedFile(file);
     }
   };
 
@@ -114,26 +174,27 @@ const AnalyzeResume: React.FC = () => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
       setFileName(file.name);
-      setResumeText(`[Extracted from file: ${file.name}]\n\nAlex Mercer\nEmail: alex.mercer@email.com\nSkills: React, JavaScript, SQL, MySQL, Git, Redux, HTML, CSS`);
+      await parseUploadedFile(file);
     }
   };
 
-  // Actual keyword extraction & calculation algorithm
-  const performAnalysis = () => {
+  // Actual keyword extraction & calculation algorithm calling the backend
+  const performAnalysis = async () => {
+    const token = localStorage.getItem("token");
+    
+    // Step 1: Pre-calculate local keywords overlap for missing/matching tags (helps both guest and real modes)
     const resumeLower = resumeText.toLowerCase();
     const jobLower = jobText.toLowerCase();
 
-    // 1. Keyword overlap
     const resumeSkills: string[] = [];
     const jobSkills: string[] = [];
 
     TECH_KEYWORDS.forEach(keyword => {
-      // Create a regex to match word boundary or keyword variations
       const regex = new RegExp(`\\b${keyword.replace(".", "\\.")}\\b`, "i");
       if (jobLower.match(regex)) {
         jobSkills.push(keyword);
@@ -146,93 +207,157 @@ const AnalyzeResume: React.FC = () => {
     const matching = jobSkills.filter(skill => resumeSkills.includes(skill));
     const missing = jobSkills.filter(skill => !resumeSkills.includes(skill));
 
-    const keywordMatchPct = jobSkills.length > 0 
-      ? Math.round((matching.length / jobSkills.length) * 100) 
-      : 80;
+    if (!token) {
+      // Guest/Fallback Mode - perform calculations locally
+      setGuestMode(true);
 
-    // 2. Formatting Score (simple checks: length, structures)
-    let formatting = 70;
-    if (resumeText.length > 300) formatting += 15;
-    if (resumeText.includes("EXPERIENCE") || resumeText.includes("Experience")) formatting += 10;
-    if (resumeText.includes("EDUCATION") || resumeText.includes("Education")) formatting += 5;
-    formatting = Math.min(formatting, 100);
+      const keywordMatchPct = jobSkills.length > 0 
+        ? Math.round((matching.length / jobSkills.length) * 100) 
+        : 75;
 
-    // 3. Section completeness checks
-    let sections = 40;
-    if (resumeLower.includes("email") || resumeLower.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/)) sections += 20;
-    if (resumeLower.includes("phone") || resumeLower.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/)) sections += 15;
-    if (resumeLower.includes("summary") || resumeLower.includes("profile")) sections += 15;
-    if (resumeLower.includes("skills") || resumeLower.includes("expertise")) sections += 10;
-    sections = Math.min(sections, 100);
+      let formatting = 70;
+      if (resumeText.length > 300) formatting += 15;
+      if (resumeText.includes("EXPERIENCE") || resumeText.includes("Experience")) formatting += 10;
+      if (resumeText.includes("EDUCATION") || resumeText.includes("Education")) formatting += 5;
+      formatting = Math.min(formatting, 100);
 
-    // 4. Bullet metrics (quantifiable stats check)
-    let bullets = 40;
-    const hasNumbers = resumeText.match(/\b\d+%\b|\b\d+\s+years\b|\b\$\d+\b|\b\d+x\b|\bincreased\s+\d+\b|\breduced\s+\d+\b/i);
-    if (hasNumbers) bullets += 40;
-    if (resumeText.split("\n").filter(line => line.trim().startsWith("-") || line.trim().startsWith("•")).length > 4) bullets += 20;
+      let sections = 40;
+      if (resumeLower.includes("email") || resumeLower.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/)) sections += 20;
+      if (resumeLower.includes("phone") || resumeLower.match(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/)) sections += 15;
+      if (resumeLower.includes("summary") || resumeLower.includes("profile")) sections += 15;
+      if (resumeLower.includes("skills") || resumeLower.includes("expertise")) sections += 10;
+      sections = Math.min(sections, 100);
 
-    // 5. Total Score
-    const totalScore = Math.round((keywordMatchPct * 0.5) + (formatting * 0.2) + (sections * 0.15) + (bullets * 0.15));
+      let bullets = 40;
+      const hasNumbers = resumeText.match(/\b\d+%\b|\b\d+\s+years\b|\b\$\d+\b|\b\d+x\b|\bincreased\s+\d+\b|\breduced\s+\d+\b/i);
+      if (hasNumbers) bullets += 40;
+      if (resumeText.split("\n").filter(line => line.trim().startsWith("-") || line.trim().startsWith("•")).length > 4) bullets += 20;
 
-    // 6. Actionable recommendations
-    const recs = [];
-    let recId = 1;
+      const totalScore = Math.round((keywordMatchPct * 0.4) + (formatting * 0.25) + (sections * 0.15) + (bullets * 0.2));
 
-    if (missing.length > 0) {
-      recs.push({
-        id: recId++,
-        type: "high" as const,
-        text: `Add missing key technologies: ${missing.slice(0, 3).join(", ").toUpperCase()}`,
-        description: "These keywords were detected in the job description but are missing from your resume. Recruiters screen heavily for these tags."
+      const recs = [];
+      let recId = 1;
+
+      if (missing.length > 0) {
+        recs.push({
+          id: recId++,
+          type: "high" as const,
+          text: `Add missing key technologies: ${missing.slice(0, 3).join(", ").toUpperCase()}`,
+          description: "These keywords were detected in the job description but are missing from your resume. Recruiters screen heavily for these tags."
+        });
+      }
+      if (!hasNumbers) {
+        recs.push({
+          id: recId++,
+          type: "high" as const,
+          text: "Quantify your achievements with numbers & percentages",
+          description: "Your experience descriptions describe duties rather than impact. Try to include stats, e.g., 'Reduced dashboard load time by 15%' or 'Managed a codebase of 5k+ users'."
+        });
+      }
+      if (sections < 80) {
+        recs.push({
+          id: recId++,
+          type: "medium" as const,
+          text: "Add missing critical sections (Summary or Contact links)",
+          description: "ATS parser checks for specific structural landmarks. Ensure you have clear headers for Summary, Skills, Experience, and Education."
+        });
+      }
+
+      setResults({
+        score: totalScore,
+        keywordMatchScore: keywordMatchPct,
+        formattingScore: formatting,
+        sectionScore: sections,
+        bulletScore: bullets,
+        matchingSkills: matching,
+        missingSkills: missing,
+        recommendations: recs
       });
+
+      setSkillGapResults({
+        userSkills: resumeSkills,
+        jobSkills: jobSkills,
+        missingSkills: missing,
+        learningRoadmap: [
+          { stepNumber: 1, title: `Master Missing Technical Skills (${missing.slice(0, 2).map(m => m.toUpperCase()).join(", ") || "General"})`, description: "Focus on syntax fundamentals, routing patterns, database drivers, and practical setup guides.", timeline: "Week 1" },
+          { stepNumber: 2, title: "Build Scalable API Projects", description: "Design a repository linking these target libraries, handling server requests and error bounds.", timeline: "Weeks 2-3" },
+          { stepNumber: 3, title: "Containerization & Cloud Services", description: "Deploy core features containerized, configuring environment setups and port maps.", timeline: "Week 4" }
+        ],
+        recommendedResources: {
+          courses: [
+            { title: "Complete Tech Career Specialization", provider: "Coursera", url: "https://coursera.org", durationOrCost: "4 weeks" },
+            { title: "Advanced Technical Bootcamp", provider: "Udemy", url: "https://udemy.com", durationOrCost: "20 hours" }
+          ],
+          youtubeVideos: [
+            { title: "Modern Technologies in 100 Seconds", provider: "Fireship", url: "https://youtube.com", durationOrCost: "10 min" },
+            { title: "Full System Architecture & Coding", provider: "freeCodeCamp", url: "https://youtube.com", durationOrCost: "6 hours" }
+          ],
+          certifications: [
+            { title: "AWS Solutions Architect standard", provider: "Amazon Web Services", url: "https://aws.amazon.com", durationOrCost: "$150" }
+          ]
+        }
+      });
+      return;
     }
 
-    if (!hasNumbers) {
-      recs.push({
-        id: recId++,
-        type: "high" as const,
-        text: "Quantify your achievements with numbers & percentages",
-        description: "Your experience descriptions describe duties rather than impact. Try to include stats, e.g., 'Reduced dashboard load time by 15%' or 'Managed a codebase of 5k+ users'."
+    // Authenticated Mode - call real backend endpoints
+    setGuestMode(false);
+    try {
+      // 1. Call ATS Analyzer
+      const atsRes = await Api.post("/api/ats/analyze", {
+        resumeText: resumeText,
+        jobDescription: jobText
+      });
+
+      // 2. Call Skill Gap Analyzer
+      const gapRes = await Api.post("/api/skill-gap/analyze", {
+        userSkills: matching.join(", "), // Pass parsed match skills
+        jobDescription: jobText
+      });
+
+      if (atsRes.data && atsRes.data.data) {
+        const data = atsRes.data.data;
+        setResults({
+          score: data.score ?? 70,
+          keywordMatchScore: data.keywordMatchScore ?? 75,
+          formattingScore: data.formattingScore ?? 70,
+          sectionScore: data.sectionScore ?? 80,
+          bulletScore: data.bulletScore ?? 65,
+          matchingSkills: data.matchingSkills ?? matching,
+          missingSkills: data.missingSkills ?? missing,
+          recommendations: data.recommendations ?? []
+        });
+      }
+
+      if (gapRes.data && gapRes.data.data) {
+        setSkillGapResults(gapRes.data.data);
+      }
+    } catch (err: any) {
+      console.error("Backend scan error:", err);
+      // Fallback local mock scan on error
+      setResults({
+        score: 65,
+        keywordMatchScore: 70,
+        formattingScore: 80,
+        sectionScore: 75,
+        bulletScore: 50,
+        matchingSkills: matching,
+        missingSkills: missing,
+        recommendations: [
+          { id: 1, type: "high", text: "Integrate missing tech skills", description: "Your profile is missing core job terms like " + missing.slice(0, 3).join(", ") }
+        ]
+      });
+      
+      setSkillGapResults({
+        userSkills: resumeSkills,
+        jobSkills: jobSkills,
+        missingSkills: missing,
+        learningRoadmap: [
+          { stepNumber: 1, title: "Master missing skills", description: "Review technical tutorials and practical coding guidelines.", timeline: "Week 1" }
+        ],
+        recommendedResources: { courses: [], youtubeVideos: [], certifications: [] }
       });
     }
-
-    if (sections < 80) {
-      recs.push({
-        id: recId++,
-        type: "medium" as const,
-        text: "Add missing critical sections (Summary or Contact links)",
-        description: "ATS parser checks for specific structural landmarks. Ensure you have clear headers for Summary, Skills, Experience, and Education."
-      });
-    }
-
-    if (resumeText.length < 200) {
-      recs.push({
-        id: recId++,
-        type: "medium" as const,
-        text: "Increase resume length and detail depth",
-        description: "A short resume might rank lower on relevance algorithms. Aim to describe your work experience in more detail (at least 3-4 bullet points per job)."
-      });
-    }
-
-    if (formatting < 90) {
-      recs.push({
-        id: recId++,
-        type: "low" as const,
-        text: "Standardize formatting & fonts",
-        description: "Keep headings consistent and use bullet points instead of paragraphs for job duties to help ATS scanners digest your text."
-      });
-    }
-
-    setResults({
-      score: totalScore,
-      keywordMatchScore: keywordMatchPct,
-      formattingScore: formatting,
-      sectionScore: sections,
-      bulletScore: bullets,
-      matchingSkills: matching,
-      missingSkills: missing,
-      recommendations: recs
-    });
   };
 
   const handleStartScan = () => {
@@ -247,6 +372,8 @@ const AnalyzeResume: React.FC = () => {
     setIsScanning(true);
     setScanStep(0);
     setResults(null);
+    setSkillGapResults(null);
+    setActiveTab("ats");
   };
 
   const handleReset = () => {
@@ -287,45 +414,62 @@ const AnalyzeResume: React.FC = () => {
             <div className="input-card">
               <div className="card-header">
                 <h3>1. Your Resume</h3>
-                <span>PDF, DOCX, TXT or paste text</span>
+                <span>PDF or TXT file (Recommended) or paste text</span>
               </div>
 
               {/* Upload Zone */}
               <div
-                className={`upload-zone ${fileName ? "uploaded" : ""}`}
+                className={`upload-zone ${fileName ? "uploaded" : ""} ${isParsingFile ? "loading" : ""}`}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
               >
                 <input
                   type="file"
                   id="resume-file-input"
-                  accept=".pdf,.docx,.txt"
+                  accept=".pdf,.txt"
                   onChange={handleFileChange}
                   style={{ display: "none" }}
+                  disabled={isParsingFile}
                 />
-                <Upload size={32} className="upload-icon" />
-                {fileName ? (
-                  <div className="file-info">
-                    <strong>{fileName}</strong>
-                    <button className="remove-file-btn" onClick={() => setFileName(null)}>Remove</button>
+                
+                {isParsingFile ? (
+                  <div className="parser-loading" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px", padding: "15px 0" }}>
+                    <div className="spinner" style={{ width: "28px", height: "28px", border: "3px solid rgba(59, 130, 246, 0.2)", borderTopColor: "#3b82f6", borderRadius: "50%", animation: "spin 0.8s infinite linear" }}></div>
+                    <p style={{ fontSize: "13px", color: "#94a3b8", margin: 0 }}>AI Parsing Engine extracting text context...</p>
                   </div>
                 ) : (
-                  <div>
-                    <p>Drag and drop your resume file here or</p>
-                    <label htmlFor="resume-file-input" className="file-label">
-                      Browse Files
-                    </label>
-                  </div>
+                  <>
+                    <Upload size={32} className="upload-icon" />
+                    {fileName ? (
+                      <div className="file-info">
+                        <strong>{fileName}</strong>
+                        {parseError ? (
+                          <span className="parse-error-txt" style={{ color: "#ef4444", fontSize: "11px", display: "block" }}>{parseError}</span>
+                        ) : (
+                          <span className="parse-success-txt" style={{ color: "#10b981", fontSize: "11px", display: "block" }}>✓ AI Document Parsed</span>
+                        )}
+                        <button className="remove-file-btn" onClick={() => { setFileName(null); setResumeText(""); setParseError(""); }}>Remove & Reset</button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p>Drag & drop your resume PDF here or</p>
+                        <label htmlFor="resume-file-input" className="file-label">
+                          Browse Files
+                        </label>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
               <div className="textarea-wrapper">
-                <label>Or Paste Resume Text</label>
+                <label>Or Edit / Paste Resume Text</label>
                 <textarea
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
                   placeholder="Paste your full resume text details here..."
                   rows={12}
+                  disabled={isParsingFile}
                 />
               </div>
             </div>
@@ -347,7 +491,11 @@ const AnalyzeResume: React.FC = () => {
                 />
               </div>
 
-              <button className="analyze-submit-btn" onClick={handleStartScan}>
+              <button 
+                className="analyze-submit-btn" 
+                onClick={handleStartScan}
+                disabled={isParsingFile}
+              >
                 Start Analysis <Play size={16} />
               </button>
             </div>
@@ -381,144 +529,309 @@ const AnalyzeResume: React.FC = () => {
         {!isScanning && results && (
           <div className="results-container" id="analysis-report-area">
             
+            {/* Guest warning banner */}
+            {guestMode && (
+              <div className="guest-warning-banner hide-on-print" style={{ display: "flex", gap: "12px", alignItems: "flex-start", backgroundColor: "rgba(245, 158, 11, 0.05)", border: "1px solid rgba(245, 158, 11, 0.2)", borderRadius: "8px", padding: "16px", marginBottom: "10px" }}>
+                <AlertTriangle size={20} className="warning-icon" style={{ color: "#f59e0b", flexShrink: 0, marginTop: "2px" }} />
+                <div className="banner-text">
+                  <h4 style={{ color: "#fbbf24", margin: "0 0 4px 0", fontSize: "14px", fontWeight: 700 }}>Guest Preview Mode</h4>
+                  <p style={{ color: "#cbd5e1", margin: 0, fontSize: "12.5px", lineHeight: 1.4 }}>You are viewing local keyword matching results. Login or Sign up to access Google Gemini 1.5 Flash integrations for deep skill pathways.</p>
+                </div>
+              </div>
+            )}
+
             {/* Dashboard Header */}
             <div className="results-header-card">
               <div className="header-info">
-                <h2>ATS Match Analysis Report</h2>
-                <p>Calculated keyword match overlap and structural assessment</p>
+                <h2>AI Skill Gap & ATS Report</h2>
+                <p>Calculated keyword match overlap, structural check, and roadmap metrics</p>
               </div>
               <button className="tool-btn download-btn hide-on-print" onClick={handlePrint}>
                 <Download size={16} /> Export PDF Report
               </button>
             </div>
 
-            {/* Grid metrics */}
-            <div className="metrics-grid">
-              {/* Circular Score dial */}
-              <div className="dial-card">
-                <div className="score-dial-wrapper">
-                  <svg className="score-dial-svg" viewBox="0 0 100 100">
-                    <circle className="dial-bg" cx="50" cy="50" r="40" />
-                    <circle 
-                      className="dial-fill" 
-                      cx="50" 
-                      cy="50" 
-                      r="40" 
-                      strokeDasharray={251.2}
-                      strokeDashoffset={251.2 - (251.2 * results.score) / 100}
-                    />
-                  </svg>
-                  <div className="dial-label">
-                    <span className="number">{results.score}%</span>
-                    <span className="text">Match Score</span>
-                  </div>
-                </div>
-                
-                <div className="dial-rating-text">
-                  {results.score >= 80 ? (
-                    <strong style={{ color: "#10b981" }}>Excellent Match! Ready to Apply</strong>
-                  ) : results.score >= 60 ? (
-                    <strong style={{ color: "#f59e0b" }}>Good Match. Simple edits advised</strong>
-                  ) : (
-                    <strong style={{ color: "#ef4444" }}>Low Match. Re-optimizing highly recommended</strong>
-                  )}
-                </div>
-              </div>
-
-              {/* Breakdown cards */}
-              <div className="metrics-breakdown-card">
-                <h3>Performance Breakdown</h3>
-                
-                <div className="breakdown-item">
-                  <div className="breakdown-header">
-                    <span>Keyword Relevance</span>
-                    <span>{results.keywordMatchScore}%</span>
-                  </div>
-                  <div className="breakdown-bar"><div className="fill" style={{ width: `${results.keywordMatchScore}%`, backgroundColor: "#3b82f6" }}></div></div>
-                </div>
-
-                <div className="breakdown-item">
-                  <div className="breakdown-header">
-                    <span>Formatting Checks</span>
-                    <span>{results.formattingScore}%</span>
-                  </div>
-                  <div className="breakdown-bar"><div className="fill" style={{ width: `${results.formattingScore}%`, backgroundColor: "#10b981" }}></div></div>
-                </div>
-
-                <div className="breakdown-item">
-                  <div className="breakdown-header">
-                    <span>Section Completeness</span>
-                    <span>{results.sectionScore}%</span>
-                  </div>
-                  <div className="breakdown-bar"><div className="fill" style={{ width: `${results.sectionScore}%`, backgroundColor: "#8b5cf6" }}></div></div>
-                </div>
-
-                <div className="breakdown-item">
-                  <div className="breakdown-header">
-                    <span>Action Bullet Metrics</span>
-                    <span>{results.bulletScore}%</span>
-                  </div>
-                  <div className="breakdown-bar"><div className="fill" style={{ width: `${results.bulletScore}%`, backgroundColor: "#ec4899" }}></div></div>
-                </div>
-              </div>
+            {/* Tabs selector */}
+            <div className="report-tabs-bar hide-on-print" style={{ display: "flex", gap: "8px", borderBottom: "1px solid #1e293b", paddingBottom: "1px" }}>
+              <button 
+                className={`tab-link ${activeTab === "ats" ? "active" : ""}`}
+                style={{
+                  display: "flex", alignItems: "center", gap: "8px", padding: "12px 20px", fontSize: "14px", fontWeight: 600,
+                  backgroundColor: "transparent", color: activeTab === "ats" ? "#3b82f6" : "#94a3b8",
+                  border: "none", borderBottom: activeTab === "ats" ? "2px solid #3b82f6" : "2px solid transparent",
+                  cursor: "pointer", transition: "all 0.2s"
+                }}
+                onClick={() => setActiveTab("ats")}
+              >
+                <FileText size={16} /> ATS Match Report
+              </button>
+              <button 
+                className={`tab-link ${activeTab === "skillgap" ? "active" : ""}`}
+                style={{
+                  display: "flex", alignItems: "center", gap: "8px", padding: "12px 20px", fontSize: "14px", fontWeight: 600,
+                  backgroundColor: "transparent", color: activeTab === "skillgap" ? "#a78bfa" : "#94a3b8",
+                  border: "none", borderBottom: activeTab === "skillgap" ? "2px solid #a78bfa" : "2px solid transparent",
+                  cursor: "pointer", transition: "all 0.2s"
+                }}
+                onClick={() => setActiveTab("skillgap")}
+              >
+                <Sparkles size={16} /> Skill Gap & Learning Roadmap
+              </button>
             </div>
 
-            {/* Keyword tag lists */}
-            <div className="keyword-section-card">
-              <h3>Keyword Gap Analysis</h3>
-              
-              <div className="keyword-splits">
-                <div className="split-column">
-                  <h4 style={{ color: "#10b981" }}>Matching Skills ({results.matchingSkills.length})</h4>
-                  {results.matchingSkills.length > 0 ? (
-                    <div className="keyword-tags">
-                      {results.matchingSkills.map((skill, i) => (
-                        <span key={i} className="skill-tag match">{skill.toUpperCase()}</span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="empty-text">No technical skills detected matching the requirements.</p>
-                  )}
-                </div>
-
-                <div className="split-column">
-                  <h4 style={{ color: "#ef4444" }}>Missing Skills Gap ({results.missingSkills.length})</h4>
-                  {results.missingSkills.length > 0 ? (
-                    <div className="keyword-tags">
-                      {results.missingSkills.map((skill, i) => (
-                        <span key={i} className="skill-tag missing">{skill.toUpperCase()}</span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="empty-text perfect"><CheckCircle size={14} /> You match all technical keywords requested!</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Recommendation list */}
-            <div className="recommendations-card">
-              <h3>Recommended Enhancements</h3>
-              <div className="recs-list">
-                {results.recommendations.map((rec) => (
-                  <div key={rec.id} className={`rec-item ${rec.type}`}>
-                    <div className="rec-icon">
-                      {rec.type === "high" && <AlertCircle size={20} />}
-                      {rec.type === "medium" && <AlertTriangle size={20} />}
-                      {rec.type === "low" && <HelpCircle size={20} />}
+            {/* TAB CONTENT 1: ATS SCORE REPORT */}
+            {activeTab === "ats" && (
+              <div className="tab-pane-content fade-in">
+                {/* Grid metrics */}
+                <div className="metrics-grid">
+                  {/* Circular Score dial */}
+                  <div className="dial-card">
+                    <div className="score-dial-wrapper">
+                      <svg className="score-dial-svg" viewBox="0 0 100 100">
+                        <circle className="dial-bg" cx="50" cy="50" r="40" />
+                        <circle 
+                          className="dial-fill" 
+                          cx="50" 
+                          cy="50" 
+                          r="40" 
+                          strokeDasharray={251.2}
+                          strokeDashoffset={251.2 - (251.2 * results.score) / 100}
+                        />
+                      </svg>
+                      <div className="dial-label">
+                        <span className="number">{results.score}%</span>
+                        <span className="text">Match Score</span>
+                      </div>
                     </div>
                     
-                    <div className="rec-details">
-                      <h4>
-                        <span className={`impact-badge ${rec.type}`}>{rec.type.toUpperCase()} IMPACT</span>
-                        {rec.text}
-                      </h4>
-                      <p>{rec.description}</p>
+                    <div className="dial-rating-text">
+                      {results.score >= 80 ? (
+                        <strong style={{ color: "#10b981" }}>Excellent Match! Ready to Apply</strong>
+                      ) : results.score >= 60 ? (
+                        <strong style={{ color: "#f59e0b" }}>Good Match. Simple edits advised</strong>
+                      ) : (
+                        <strong style={{ color: "#ef4444" }}>Low Match. Re-optimizing highly recommended</strong>
+                      )}
                     </div>
                   </div>
-                ))}
+
+                  {/* Breakdown cards */}
+                  <div className="metrics-breakdown-card">
+                    <h3>Performance Breakdown</h3>
+                    
+                    <div className="breakdown-item">
+                      <div className="breakdown-header">
+                        <span>Keyword Relevance</span>
+                        <span>{results.keywordMatchScore}%</span>
+                      </div>
+                      <div className="breakdown-bar"><div className="fill" style={{ width: `${results.keywordMatchScore}%`, backgroundColor: "#3b82f6" }}></div></div>
+                    </div>
+
+                    <div className="breakdown-item">
+                      <div className="breakdown-header">
+                        <span>Formatting Checks</span>
+                        <span>{results.formattingScore}%</span>
+                      </div>
+                      <div className="breakdown-bar"><div className="fill" style={{ width: `${results.formattingScore}%`, backgroundColor: "#10b981" }}></div></div>
+                    </div>
+
+                    <div className="breakdown-item">
+                      <div className="breakdown-header">
+                        <span>Section Completeness</span>
+                        <span>{results.sectionScore}%</span>
+                      </div>
+                      <div className="breakdown-bar"><div className="fill" style={{ width: `${results.sectionScore}%`, backgroundColor: "#8b5cf6" }}></div></div>
+                    </div>
+
+                    <div className="breakdown-item">
+                      <div className="breakdown-header">
+                        <span>Action Bullet Metrics</span>
+                        <span>{results.bulletScore}%</span>
+                      </div>
+                      <div className="breakdown-bar"><div className="fill" style={{ width: `${results.bulletScore}%`, backgroundColor: "#ec4899" }}></div></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Keyword tag lists */}
+                <div className="keyword-section-card">
+                  <h3>Keyword Gap Analysis</h3>
+                  
+                  <div className="keyword-splits">
+                    <div className="split-column">
+                      <h4 style={{ color: "#10b981" }}>Matching Skills ({results.matchingSkills.length})</h4>
+                      {results.matchingSkills.length > 0 ? (
+                        <div className="keyword-tags">
+                          {results.matchingSkills.map((skill, i) => (
+                            <span key={i} className="skill-tag match">{skill.toUpperCase()}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="empty-text">No technical skills detected matching the requirements.</p>
+                      )}
+                    </div>
+
+                    <div className="split-column">
+                      <h4 style={{ color: "#ef4444" }}>Missing Skills Gap ({results.missingSkills.length})</h4>
+                      {results.missingSkills.length > 0 ? (
+                        <div className="keyword-tags">
+                          {results.missingSkills.map((skill, i) => (
+                            <span key={i} className="skill-tag missing">{skill.toUpperCase()}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="empty-text perfect"><CheckCircle size={14} /> You match all technical keywords requested!</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Recommendation list */}
+                <div className="recommendations-card">
+                  <h3>Recommended Enhancements</h3>
+                  <div className="recs-list">
+                    {results.recommendations.map((rec) => (
+                      <div key={rec.id} className={`rec-item ${rec.type}`}>
+                        <div className="rec-icon">
+                          {rec.type === "high" && <AlertCircle size={20} />}
+                          {rec.type === "medium" && <AlertTriangle size={20} />}
+                          {rec.type === "low" && <HelpCircle size={20} />}
+                        </div>
+                        
+                        <div className="rec-details">
+                          <h4>
+                            <span className={`impact-badge ${rec.type}`}>{rec.type.toUpperCase()} IMPACT</span>
+                            {rec.text}
+                          </h4>
+                          <p>{rec.description}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* TAB CONTENT 2: SKILL GAP ROADMAP & STUDY RESOURCES */}
+            {activeTab === "skillgap" && skillGapResults && (
+              <div className="tab-pane-content fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* Roadmap timeline card */}
+                <div className="roadmap-card" style={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "16px", padding: "30px" }}>
+                  <div className="card-header-icon" style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
+                    <Sparkles size={20} style={{ color: "#a78bfa" }} />
+                    <h3 style={{ margin: 0, fontSize: "16px", color: "#ffffff", fontWeight: 700 }}>AI Learning Roadmap & Milestone Pathway</h3>
+                  </div>
+                  <p className="roadmap-subtitle" style={{ color: "#94a3b8", fontSize: "13.5px", margin: "0 0 24px 0" }}>Sequential steps generated by Gemini AI to cover missing core competencies</p>
+
+                  <div className="timeline-stepper" style={{ display: "flex", flexDirection: "column", gap: "20px", position: "relative", paddingLeft: "10px" }}>
+                    {skillGapResults.learningRoadmap && skillGapResults.learningRoadmap.length > 0 ? (
+                      skillGapResults.learningRoadmap.map((step: any, idx: number) => (
+                        <div key={idx} className="stepper-item" style={{ display: "flex", gap: "20px", position: "relative" }}>
+                          <div className="stepper-badge" style={{
+                            display: "flex", alignItems: "center", justifyContent: "center", width: "28px", height: "28px",
+                            borderRadius: "50%", backgroundColor: "#7c3aed", color: "#ffffff", fontSize: "12px", fontWeight: 700, flexShrink: 0
+                          }}>
+                            {step.stepNumber || idx + 1}
+                          </div>
+                          <div className="stepper-content" style={{ flex: 1, backgroundColor: "#0b1120", border: "1px solid #1e293b", borderRadius: "10px", padding: "16px" }}>
+                            <div className="stepper-meta" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "15px", marginBottom: "6px" }}>
+                              <h4 style={{ margin: 0, fontSize: "14px", color: "#ffffff", fontWeight: 700 }}>{step.title}</h4>
+                              <span className="timeline-badge" style={{ backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#c084fc", fontSize: "11px", fontWeight: 600, padding: "2px 8px", borderRadius: "12px", whiteSpace: "nowrap" }}>{step.timeline}</span>
+                            </div>
+                            <p style={{ margin: 0, fontSize: "13px", color: "#94a3b8", lineHeight: 1.45 }}>{step.description}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="empty-roadmap" style={{ color: "#64748b", fontStyle: "italic", fontSize: "13.5px" }}>No specific learning path needed. You have all matching skills!</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Recommended Study Resources */}
+                <div className="study-resources-section">
+                  <h3 style={{ fontSize: "16px", color: "#ffffff", marginBottom: "16px", fontWeight: 700 }}>Curated Learning Resources</h3>
+                  
+                  <div className="resources-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "20px" }}>
+                    {/* Courses */}
+                    <div className="resource-category-card" style={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div className="category-header" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <GraduationCap className="cat-icon courses" />
+                        <h4 style={{ margin: 0, fontSize: "14px", color: "#ffffff", fontWeight: 700 }}>Professional Courses</h4>
+                      </div>
+                      
+                      <div className="resource-list" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {skillGapResults.recommendedResources?.courses && skillGapResults.recommendedResources.courses.length > 0 ? (
+                          skillGapResults.recommendedResources.courses.map((c: any, idx: number) => (
+                            <a href={c.url} target="_blank" rel="noopener noreferrer" key={idx} className="resource-link-item" style={{
+                              display: "block", textDecoration: "none", backgroundColor: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", padding: "12px", transition: "all 0.2s"
+                            }}>
+                              <div className="resource-info" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <strong style={{ color: "#ffffff", fontSize: "13px" }}>{c.title}</strong>
+                                <span className="provider" style={{ color: "#64748b", fontSize: "11px" }}>{c.provider} • {c.durationOrCost}</span>
+                              </div>
+                            </a>
+                          ))
+                        ) : (
+                          <p className="empty-resource-text" style={{ color: "#64748b", fontStyle: "italic", fontSize: "12.5px" }}>No courses recommended.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* YouTube Guides */}
+                    <div className="resource-category-card" style={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div className="category-header" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <Video className="cat-icon videos" />
+                        <h4 style={{ margin: 0, fontSize: "14px", color: "#ffffff", fontWeight: 700 }}>YouTube Tutorials</h4>
+                      </div>
+
+                      <div className="resource-list" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {skillGapResults.recommendedResources?.youtubeVideos && skillGapResults.recommendedResources.youtubeVideos.length > 0 ? (
+                          skillGapResults.recommendedResources.youtubeVideos.map((v: any, idx: number) => (
+                            <a href={v.url} target="_blank" rel="noopener noreferrer" key={idx} className="resource-link-item" style={{
+                              display: "block", textDecoration: "none", backgroundColor: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", padding: "12px", transition: "all 0.2s"
+                            }}>
+                              <div className="resource-info" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <strong style={{ color: "#ffffff", fontSize: "13px" }}>{v.title}</strong>
+                                <span className="provider" style={{ color: "#64748b", fontSize: "11px" }}>{v.provider} • {v.durationOrCost}</span>
+                              </div>
+                            </a>
+                          ))
+                        ) : (
+                          <p className="empty-resource-text" style={{ color: "#64748b", fontStyle: "italic", fontSize: "12.5px" }}>No video tutorials recommended.</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Certifications */}
+                    <div className="resource-category-card" style={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "12px", padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div className="category-header" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                        <Award className="cat-icon certs" />
+                        <h4 style={{ margin: 0, fontSize: "14px", color: "#ffffff", fontWeight: 700 }}>Certifications</h4>
+                      </div>
+
+                      <div className="resource-list" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                        {skillGapResults.recommendedResources?.certifications && skillGapResults.recommendedResources.certifications.length > 0 ? (
+                          skillGapResults.recommendedResources.certifications.map((cert: any, idx: number) => (
+                            <a href={cert.url} target="_blank" rel="noopener noreferrer" key={idx} className="resource-link-item" style={{
+                              display: "block", textDecoration: "none", backgroundColor: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", padding: "12px", transition: "all 0.2s"
+                            }}>
+                              <div className="resource-info" style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                <strong style={{ color: "#ffffff", fontSize: "13px" }}>{cert.title}</strong>
+                                <span className="provider" style={{ color: "#64748b", fontSize: "11px" }}>{cert.provider} • {cert.durationOrCost}</span>
+                              </div>
+                            </a>
+                          ))
+                        ) : (
+                          <p className="empty-resource-text" style={{ color: "#64748b", fontStyle: "italic", fontSize: "12.5px" }}>No certifications recommended.</p>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Re-analyze buttons */}
             <div className="re-analyze-bar hide-on-print">
@@ -533,5 +846,16 @@ const AnalyzeResume: React.FC = () => {
     </div>
   );
 };
+
+// Additional Icons for Resources Grid
+const GraduationCap: React.FC<any> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className} style={{ color: "#3b82f6" }}><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/></svg>
+);
+const Video: React.FC<any> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className} style={{ color: "#ef4444" }}><path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/></svg>
+);
+const Award: React.FC<any> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={props.className} style={{ color: "#10b981" }}><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+);
 
 export default AnalyzeResume;

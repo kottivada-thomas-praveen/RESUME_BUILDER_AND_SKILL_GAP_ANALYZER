@@ -56,6 +56,7 @@ interface ResumeData {
   experiences: Experience[];
   educations: Education[];
   projects: Project[];
+  photoUrl?: string;
 }
 
 const SAMPLE_DATA: ResumeData = {
@@ -107,7 +108,8 @@ const SAMPLE_DATA: ResumeData = {
       link: "github.com/alexmercer/swiftstore",
       description: "A high-performance backend API featuring JSON Web Token auth, caching, and payment processing with less than 80ms average response times."
     }
-  ]
+  ],
+  photoUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%237c3aed"/><circle cx="50" cy="40" r="20" fill="white"/><path d="M20 85c0-15 15-25 30-25s30 10 30 25z" fill="white"/></svg>'
 };
 
 const INITIAL_DATA: ResumeData = {
@@ -121,15 +123,37 @@ const INITIAL_DATA: ResumeData = {
   skills: "",
   experiences: [],
   educations: [],
-  projects: []
+  projects: [],
+  photoUrl: ""
 };
+
+import Api from "../../api/Api";
+
+const TECH_KEYWORDS_LIST = [
+  "react", "typescript", "javascript", "node.js", "node", "express", "postgresql", "postgres", "mysql", "mongodb", "nosql", "sql", "next.js", "nextjs", "vue", "angular", "python", "django", "flask", "fastapi", "java", "spring", "springboot", "c#", "dotnet", "asp.net", "php", "laravel", "ruby", "rails", "go", "golang", "rust", "aws", "azure", "gcp", "docker", "kubernetes", "git", "github", "ci/cd", "jenkins", "graphql", "rest", "api", "tailwind", "css", "html", "sass", "bootstrap", "redux", "redis", "elasticsearch", "firebase", "linux", "jest", "cypress", "mocha", "agile", "scrum", "microservices", "serverless", "security", "ai"
+];
 
 const BuildResume: React.FC = () => {
   const [resumeData, setResumeData] = useState<ResumeData>(INITIAL_DATA);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("modern");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("ats");
   const [selectedColor, setSelectedColor] = useState<string>("purple");
   const [atsScore, setAtsScore] = useState<number>(0);
   const [scoreTips, setScoreTips] = useState<string[]>([]);
+  const [scoreBreakdown, setScoreBreakdown] = useState({
+    keywords: 0,
+    formatting: 0,
+    completeness: 0,
+    bullets: 0
+  });
+  const [matchedKeywords, setMatchedKeywords] = useState<string[]>([]);
+  const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
+
+  // AI Optimizer States
+  const [optimizingField, setOptimizingField] = useState<{type: "experience" | "project", index: number} | null>(null);
+  const [optimizeLoading, setOptimizeLoading] = useState(false);
+  const [optimizeResult, setOptimizeResult] = useState<{original: string, optimized: string, explanation: string} | null>(null);
+  const [optimizeError, setOptimizeError] = useState("");
+  const [targetJobDesc, setTargetJobDesc] = useState("");
 
   // Accordion toggle states
   const [openSections, setOpenSections] = useState({
@@ -146,54 +170,230 @@ const BuildResume: React.FC = () => {
 
   // State calculations for AI Resume Score
   useEffect(() => {
-    let score = 0;
     const tips: string[] = [];
+    
+    // 1. KEYWORD RELEVANCE (Max 25%)
+    let keywordsScore = 0;
+    const allText = `
+      ${resumeData.skills} 
+      ${resumeData.title} 
+      ${resumeData.summary} 
+      ${resumeData.experiences.map(e => e.role + " " + e.description).join(" ")} 
+      ${resumeData.projects.map(p => p.name + " " + p.technologies + " " + p.description).join(" ")}
+    `.toLowerCase();
 
-    if (resumeData.fullName.trim()) score += 10;
-    else tips.push("Provide your full name in Personal Info.");
-
-    if (resumeData.title.trim()) score += 10;
-    else tips.push("Add a professional title/headline.");
-
-    if (resumeData.email.trim() && resumeData.phone.trim()) score += 15;
-    else tips.push("Ensure contact details (email and phone) are complete.");
-
-    if (resumeData.website.trim()) score += 10;
-    else tips.push("Add a link to your LinkedIn or GitHub portfolio.");
-
-    if (resumeData.summary.trim()) {
-      if (resumeData.summary.length > 50) score += 15;
-      else {
-        score += 10;
-        tips.push("Make your summary longer and more descriptive (min 50 chars).");
+    const matched: string[] = [];
+    TECH_KEYWORDS_LIST.forEach(kw => {
+      const regex = new RegExp(`\\b${kw.replace(".", "\\.")}\\b`, "i");
+      if (allText.match(regex)) {
+        matched.push(kw);
       }
+    });
+
+    // Compute expected keywords based on title
+    const titleLower = resumeData.title.toLowerCase();
+    let expected: string[] = [];
+    if (titleLower.includes("frontend") || titleLower.includes("web") || titleLower.includes("react")) {
+      expected = ["react", "typescript", "javascript", "html", "css", "git", "api", "redux", "tailwind"];
+    } else if (titleLower.includes("backend") || titleLower.includes("spring") || titleLower.includes("java") || titleLower.includes("api")) {
+      expected = ["java", "springboot", "node.js", "postgresql", "sql", "git", "docker", "aws", "rest"];
     } else {
-      tips.push("Write a professional summary explaining your key qualifications.");
+      expected = ["react", "typescript", "node.js", "sql", "postgresql", "git", "docker", "aws", "api"];
     }
 
-    const skillList = resumeData.skills.split(",").map(s => s.trim()).filter(Boolean);
-    if (skillList.length >= 5) score += 15;
-    else if (skillList.length > 0) {
-      score += 8;
-      tips.push("Add at least 5 key skills for better keyword search matching.");
+    const missing = expected.filter(kw => !matched.includes(kw));
+
+    if (matched.length >= 8) {
+      keywordsScore = 25;
+    } else if (matched.length >= 5) {
+      keywordsScore = 18;
+      tips.push("Keyword relevance is moderate. Consider adding more tech stack words related to your role.");
+    } else if (matched.length > 0) {
+      keywordsScore = 10;
+      tips.push(`Keyword Relevance is low. Try adding missing tags: ${missing.slice(0, 3).map(k => k.toUpperCase()).join(", ")}`);
     } else {
-      tips.push("List your technical or soft skills.");
+      keywordsScore = 0;
+      tips.push("No relevant technical keywords found in skills or experience list.");
+    }
+    setMatchedKeywords(matched);
+    setMissingKeywords(missing);
+
+    // 2. FORMATTING CHECKS (Max 25%)
+    let formattingScore = 0;
+    
+    // Check template (ATS template gets max points)
+    if (selectedTemplate === "ats") {
+      formattingScore += 10;
+    } else if (selectedTemplate === "classic") {
+      formattingScore += 7;
+      tips.push("Elegant Classic template has moderate ATS readability. Select Tech ATS-Optimized template for best results.");
+    } else {
+      formattingScore += 5;
+      tips.push("Sidebar layout in Modern template is hard for some legacy ATS systems to parse sequentially. Use Tech ATS-Optimized layout.");
     }
 
-    if (resumeData.experiences.length > 0) {
-      score += 15;
-      const descLen = resumeData.experiences.some(exp => exp.description.length > 30);
-      if (!descLen) tips.push("Elaborate on your job descriptions (include achievements).");
+    // Check photo (ATS standards advise against photos)
+    if (!resumeData.photoUrl) {
+      formattingScore += 5;
     } else {
-      tips.push("Add at least one work experience or internship.");
+      formattingScore += 3;
+      tips.push("Some automated recruiters penalize or strip resumes with profile pictures. Consider using a photo-less design.");
     }
 
-    if (resumeData.projects.length > 0) score += 10;
-    else tips.push("Include a project to show hands-on experience.");
+    // Check contact information completeness
+    if (resumeData.email.trim() && resumeData.phone.trim() && resumeData.location.trim()) {
+      formattingScore += 5;
+    } else {
+      formattingScore += 2;
+      tips.push("Fill out complete contact details (email, phone, location) for parsing landmarks.");
+    }
 
-    setAtsScore(score);
+    // Description text lengths (neither empty nor too short)
+    const hasExp = resumeData.experiences.length > 0;
+    const hasShortExp = resumeData.experiences.some(e => e.description.trim().length > 0 && e.description.trim().length < 40);
+    if (hasExp && !hasShortExp) {
+      formattingScore += 5;
+    } else {
+      formattingScore += 2;
+      if (hasShortExp) {
+        tips.push("Work experience descriptions are very brief. Elaborate to make them context-rich.");
+      }
+    }
+
+    // 3. SECTION COMPLETENESS (Max 25%)
+    let completenessScore = 0;
+    if (resumeData.fullName.trim() && resumeData.title.trim()) completenessScore += 5;
+    else tips.push("Provide your full name and job title in Personal Info.");
+
+    if (resumeData.summary.trim() && resumeData.summary.length > 40) completenessScore += 5;
+    else tips.push("Ensure your Professional Summary is present and at least 40 characters.");
+
+    if (resumeData.skills.trim()) completenessScore += 5;
+    else tips.push("Ensure your Technical Skills section is filled.");
+
+    if (resumeData.experiences.length > 0) completenessScore += 5;
+    else tips.push("Add at least one work experience item.");
+
+    if (resumeData.projects.length > 0) completenessScore += 5;
+    else tips.push("Include a project to showcase practical application.");
+
+    // 4. ACTION BULLET METRICS (Max 25%)
+    let bulletsScore = 0;
+
+    // Scan descriptions for action verbs
+    const actionVerbs = [
+      "led", "designed", "built", "developed", "implemented", "managed", "architected", "created", 
+      "optimized", "improved", "delivered", "refactored", "collaborated", "integrated", "accelerated", 
+      "automated", "formulated", "enhanced", "orchestrated", "engineered", "scaled"
+    ];
+    const experiencesText = resumeData.experiences.map(e => e.description).join(" ").toLowerCase();
+    const projectsText = resumeData.projects.map(p => p.description).join(" ").toLowerCase();
+    const bulletText = (experiencesText + " " + projectsText).trim();
+
+    let verbCount = 0;
+    actionVerbs.forEach(v => {
+      const regex = new RegExp(`\\b${v}\\b`, "i");
+      if (bulletText.match(regex)) {
+        verbCount++;
+      }
+    });
+
+    if (verbCount >= 3) {
+      bulletsScore += 12;
+    } else if (verbCount > 0) {
+      bulletsScore += 6;
+      tips.push("Add more strong action verbs (e.g. Architected, Optimized, Automated) to start your bullets.");
+    } else {
+      tips.push("Avoid passive language. Begin your achievements with impactful action verbs.");
+    }
+
+    // Scan for numbers/metrics/percentages (STAR methodology)
+    const metricsPattern = /\b\d+%\b|\b\d+\s+years\b|\b\$\d+\b|\b\d+\s*x\b|\bincreased\b|\breduced\b|\b\d+\s*ms\b|\b\d+\s*k\s*users\b|\b\d+\s*active\b/i;
+    const hasMetrics = bulletText.match(metricsPattern) || /\b\d+(?:\.\d+)?\b/.test(bulletText); // detects simple stats
+    
+    if (hasMetrics) {
+      bulletsScore += 13;
+    } else {
+      tips.push("Quantify your achievements! Add concrete stats, metrics, percentages, or dollar amounts to show impact.");
+    }
+
+    // Sum scores
+    const overall = keywordsScore + formattingScore + completenessScore + bulletsScore;
+    setAtsScore(overall);
     setScoreTips(tips);
-  }, [resumeData]);
+    setScoreBreakdown({
+      keywords: keywordsScore,
+      formatting: formattingScore,
+      completeness: completenessScore,
+      bullets: bulletsScore
+    });
+  }, [resumeData, selectedTemplate]);
+
+  // AI Optimization Helpers
+  const handleOpenOptimizer = (type: "experience" | "project", index: number) => {
+    setOptimizingField({ type, index });
+    setOptimizeResult(null);
+    setOptimizeError("");
+    setOptimizeLoading(false);
+  };
+
+  const handleRunOptimization = async () => {
+    if (!optimizingField) return;
+    const text = optimizingField.type === "experience" 
+      ? resumeData.experiences[optimizingField.index].description 
+      : resumeData.projects[optimizingField.index].description;
+
+    if (!text.trim()) {
+      setOptimizeError("Please enter some description text first to optimize.");
+      return;
+    }
+
+    setOptimizeLoading(true);
+    setOptimizeError("");
+    setOptimizeResult(null);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Guest mode - provide fallback preview mock
+      setTimeout(() => {
+        setOptimizeLoading(false);
+        setOptimizeResult({
+          original: text,
+          optimized: `Architected and delivered highly performant code modules, improving core rendering latency metrics by 25% and elevating platform scalability in production.`,
+          explanation: "Replaced general description with active verbs ('Architected', 'delivered') and added quantified key results (25% latency reduction)."
+        });
+      }, 1000);
+      return;
+    }
+
+    try {
+      const response = await Api.post("/api/optimize/bullet", {
+        bulletPoint: text,
+        jobDescription: targetJobDesc
+      });
+      if (response.data && response.data.data) {
+        setOptimizeResult(response.data.data);
+      } else {
+        throw new Error("No suggestion returned from AI service.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setOptimizeError(err.response?.data?.message || "Failed to optimize bullet point. Please try again.");
+    } finally {
+      setOptimizeLoading(false);
+    }
+  };
+
+  const handleApplyOptimization = () => {
+    if (!optimizingField || !optimizeResult) return;
+    const { type, index } = optimizingField;
+    if (type === "experience") {
+      updateExperience(index, "description", optimizeResult.optimized);
+    } else {
+      updateProject(index, "description", optimizeResult.optimized);
+    }
+    setOptimizingField(null);
+  };
 
   // Fill sample data
   const handleFillSample = () => {
@@ -211,6 +411,22 @@ const BuildResume: React.FC = () => {
   const handleFieldChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setResumeData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Handle Profile Photo Upload
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setResumeData(prev => ({ ...prev, photoUrl: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemovePhoto = () => {
+    setResumeData(prev => ({ ...prev, photoUrl: "" }));
   };
 
   // Handle Experiences
@@ -364,17 +580,83 @@ const BuildResume: React.FC = () => {
             </div>
           </div>
 
-          {/* AI Score Analyzer Card */}
-          <div className="ai-feedback-section">
-            <div className="score-header">
-              <div className="score-badge-container">
-                <FileCheck size={20} className="score-icon" style={{ color: activeColor }} />
-                <span>Resume Strength:</span>
+          {/* ATS Score & Detailed Feedback Dashboard */}
+          <div className="ai-feedback-section premium-ats-dashboard">
+            <div className="ats-dashboard-header">
+              <div className="header-left">
+                <FileCheck size={22} className="score-icon animate-pulse" style={{ color: activeColor }} />
+                <h3>ATS Match & Score</h3>
               </div>
-              <span className="score-value" style={{ color: activeColor }}>{atsScore}%</span>
+              <span className="score-badge" style={{ backgroundColor: activeColor }}>
+                {atsScore}% Score
+              </span>
             </div>
-            <div className="score-bar-wrapper">
-              <div className="score-bar" style={{ width: `${atsScore}%`, backgroundColor: activeColor }} />
+
+            <div className="score-progress-container">
+              <div className="main-progress-bar"><div className="fill" style={{ width: `${atsScore}%`, backgroundColor: activeColor }}></div></div>
+            </div>
+
+            {/* Grid for Score Categories */}
+            <div className="ats-categories-grid">
+              <div className="category-item">
+                <div className="category-header">
+                  <span>Keyword Relevance</span>
+                  <strong>{scoreBreakdown.keywords}/25</strong>
+                </div>
+                <div className="category-bar"><div className="fill" style={{ width: `${(scoreBreakdown.keywords / 25) * 100}%`, backgroundColor: "#3b82f6" }}></div></div>
+              </div>
+
+              <div className="category-item">
+                <div className="category-header">
+                  <span>Formatting & Structure</span>
+                  <strong>{scoreBreakdown.formatting}/25</strong>
+                </div>
+                <div className="category-bar"><div className="fill" style={{ width: `${(scoreBreakdown.formatting / 25) * 100}%`, backgroundColor: "#10b981" }}></div></div>
+              </div>
+
+              <div className="category-item">
+                <div className="category-header">
+                  <span>Section Completeness</span>
+                  <strong>{scoreBreakdown.completeness}/25</strong>
+                </div>
+                <div className="category-bar"><div className="fill" style={{ width: `${(scoreBreakdown.completeness / 25) * 100}%`, backgroundColor: "#8b5cf6" }}></div></div>
+              </div>
+
+              <div className="category-item">
+                <div className="category-header">
+                  <span>Action Bullet Metrics</span>
+                  <strong>{scoreBreakdown.bullets}/25</strong>
+                </div>
+                <div className="category-bar"><div className="fill" style={{ width: `${(scoreBreakdown.bullets / 25) * 100}%`, backgroundColor: "#ec4899" }}></div></div>
+              </div>
+            </div>
+
+            {/* Keyword tag matches helper */}
+            <div className="ats-keyword-helper">
+              <div className="helper-title">🎯 Technical Keywords Overlap</div>
+              <div className="matched-tags-list">
+                {matchedKeywords.length > 0 ? (
+                  matchedKeywords.slice(0, 10).map((kw, i) => (
+                    <span key={i} className="mini-tag match">{kw.toUpperCase()}</span>
+                  ))
+                ) : (
+                  <span className="no-tags">No matching keywords. Add tech stack details.</span>
+                )}
+                {matchedKeywords.length > 10 && (
+                  <span className="more-tags">+{matchedKeywords.length - 10} more</span>
+                )}
+              </div>
+              
+              {missingKeywords.length > 0 && (
+                <div className="missing-section">
+                  <span className="missing-label">💡 Recommended to Add: </span>
+                  <div className="missing-tags-list">
+                    {missingKeywords.slice(0, 4).map((kw, i) => (
+                      <span key={i} className="mini-tag recommend">{kw.toUpperCase()}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {scoreTips.length > 0 ? (
@@ -391,7 +673,7 @@ const BuildResume: React.FC = () => {
               </div>
             ) : (
               <div className="score-perfect">
-                <Sparkles size={16} /> Perfect! Your resume draft is strong and complete.
+                <Sparkles size={16} /> Perfect! Your resume draft is strong, aligned, and ATS-ready.
               </div>
             )}
           </div>
@@ -474,6 +756,31 @@ const BuildResume: React.FC = () => {
                         onChange={handleFieldChange}
                         placeholder="github.com/johndoe"
                       />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Profile Photo</label>
+                    <div className="photo-upload-container">
+                      {resumeData.photoUrl ? (
+                        <div className="photo-preview-wrapper">
+                          <img src={resumeData.photoUrl} alt="Profile Preview" className="photo-preview-thumbnail" />
+                          <button type="button" className="remove-photo-btn" onClick={handleRemovePhoto}>Remove Photo</button>
+                        </div>
+                      ) : (
+                        <div className="photo-upload-placeholder">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            id="photo-file-input"
+                            onChange={handlePhotoChange}
+                            style={{ display: "none" }}
+                          />
+                          <label htmlFor="photo-file-input" className="photo-upload-label">
+                            Upload Profile Photo
+                          </label>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -562,7 +869,17 @@ const BuildResume: React.FC = () => {
                       </div>
 
                       <div className="form-group">
-                        <label>Description / Core Achievements</label>
+                        <div className="label-row-optimize" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                          <label style={{ margin: 0 }}>Description / Core Achievements</label>
+                          <button 
+                            type="button" 
+                            className="optimize-btn-trigger" 
+                            style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#c084fc", border: "1px solid rgba(124, 58, 237, 0.2)", borderRadius: "4px", padding: "2px 8px", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
+                            onClick={() => handleOpenOptimizer("experience", index)}
+                          >
+                            <Sparkles size={12} /> Optimize with AI
+                          </button>
+                        </div>
                         <textarea
                           value={exp.description}
                           onChange={(e) => updateExperience(index, "description", e.target.value)}
@@ -709,7 +1026,17 @@ const BuildResume: React.FC = () => {
                       </div>
 
                       <div className="form-group">
-                        <label>Description</label>
+                        <div className="label-row-optimize" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                          <label style={{ margin: 0 }}>Description</label>
+                          <button 
+                            type="button" 
+                            className="optimize-btn-trigger" 
+                            style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#c084fc", border: "1px solid rgba(124, 58, 237, 0.2)", borderRadius: "4px", padding: "2px 8px", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
+                            onClick={() => handleOpenOptimizer("project", index)}
+                          >
+                            <Sparkles size={12} /> Optimize with AI
+                          </button>
+                        </div>
                         <textarea
                           value={proj.description}
                           onChange={(e) => updateProject(index, "description", e.target.value)}
@@ -770,6 +1097,11 @@ const BuildResume: React.FC = () => {
                 <div className="modern-layout">
                   {/* Left Sidebar */}
                   <div className="modern-sidebar" style={{ borderRightColor: activeColor }}>
+                    {resumeData.photoUrl && (
+                      <div className="sidebar-photo-container">
+                        <img src={resumeData.photoUrl} alt={resumeData.fullName} className="sidebar-photo" />
+                      </div>
+                    )}
                     <div className="sidebar-header-box" style={{ backgroundColor: activeColor }}>
                       <h1 className="name">{resumeData.fullName || "Your Full Name"}</h1>
                       <div className="job-title">{resumeData.title || "Job Title / Specialization"}</div>
@@ -859,15 +1191,36 @@ const BuildResume: React.FC = () => {
               {selectedTemplate === "classic" && (
                 <div className="classic-layout">
                   <header className="classic-header" style={{ borderBottomColor: activeColor }}>
-                    <h1 className="name" style={{ color: activeColor }}>{resumeData.fullName || "Your Full Name"}</h1>
-                    <div className="job-title">{resumeData.title || "Job Title / Specialization"}</div>
-                    
-                    <div className="contact-row">
-                      {resumeData.email && <span>{resumeData.email}</span>}
-                      {resumeData.phone && <span> • {resumeData.phone}</span>}
-                      {resumeData.location && <span> • {resumeData.location}</span>}
-                      {resumeData.website && <span> • {resumeData.website}</span>}
-                    </div>
+                    {resumeData.photoUrl ? (
+                      <div className="classic-header-content">
+                        <div className="classic-photo-container">
+                          <img src={resumeData.photoUrl} alt={resumeData.fullName} className="classic-photo" />
+                        </div>
+                        <div className="classic-header-text">
+                          <h1 className="name" style={{ color: activeColor }}>{resumeData.fullName || "Your Full Name"}</h1>
+                          <div className="job-title">{resumeData.title || "Job Title / Specialization"}</div>
+                          
+                          <div className="contact-row" style={{ justifyContent: "flex-start" }}>
+                            {resumeData.email && <span>{resumeData.email}</span>}
+                            {resumeData.phone && <span> • {resumeData.phone}</span>}
+                            {resumeData.location && <span> • {resumeData.location}</span>}
+                            {resumeData.website && <span> • {resumeData.website}</span>}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <h1 className="name" style={{ color: activeColor }}>{resumeData.fullName || "Your Full Name"}</h1>
+                        <div className="job-title">{resumeData.title || "Job Title / Specialization"}</div>
+                        
+                        <div className="contact-row">
+                          {resumeData.email && <span>{resumeData.email}</span>}
+                          {resumeData.phone && <span> • {resumeData.phone}</span>}
+                          {resumeData.location && <span> • {resumeData.location}</span>}
+                          {resumeData.website && <span> • {resumeData.website}</span>}
+                        </div>
+                      </>
+                    )}
                   </header>
 
                   {resumeData.summary && (
@@ -947,14 +1300,34 @@ const BuildResume: React.FC = () => {
               {selectedTemplate === "ats" && (
                 <div className="ats-layout">
                   <header className="ats-header">
-                    <h1 className="name">{resumeData.fullName || "Your Full Name"}</h1>
-                    <div className="job-title" style={{ color: activeColor }}>{resumeData.title || "Job Title / Specialization"}</div>
-                    <div className="contact-details">
-                      {resumeData.email && <span>{resumeData.email} | </span>}
-                      {resumeData.phone && <span>{resumeData.phone} | </span>}
-                      {resumeData.location && <span>{resumeData.location} | </span>}
-                      {resumeData.website && <span>{resumeData.website}</span>}
-                    </div>
+                    {resumeData.photoUrl ? (
+                      <div className="ats-header-flex">
+                        <div className="ats-header-text">
+                          <h1 className="name">{resumeData.fullName || "Your Full Name"}</h1>
+                          <div className="job-title" style={{ color: activeColor }}>{resumeData.title || "Job Title / Specialization"}</div>
+                          <div className="contact-details">
+                            {resumeData.email && <span>{resumeData.email} | </span>}
+                            {resumeData.phone && <span>{resumeData.phone} | </span>}
+                            {resumeData.location && <span>{resumeData.location} | </span>}
+                            {resumeData.website && <span>{resumeData.website}</span>}
+                          </div>
+                        </div>
+                        <div className="ats-photo-container">
+                          <img src={resumeData.photoUrl} alt={resumeData.fullName} className="ats-photo" />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <h1 className="name">{resumeData.fullName || "Your Full Name"}</h1>
+                        <div className="job-title" style={{ color: activeColor }}>{resumeData.title || "Job Title / Specialization"}</div>
+                        <div className="contact-details">
+                          {resumeData.email && <span>{resumeData.email} | </span>}
+                          {resumeData.phone && <span>{resumeData.phone} | </span>}
+                          {resumeData.location && <span>{resumeData.location} | </span>}
+                          {resumeData.website && <span>{resumeData.website}</span>}
+                        </div>
+                      </>
+                    )}
                   </header>
 
                   {resumeData.summary && (
@@ -1027,12 +1400,124 @@ const BuildResume: React.FC = () => {
                   )}
                 </div>
               )}
-
             </div>
           </div>
         </div>
-
       </div>
+
+      {/* AI Bullet Optimizer Modal */}
+      {optimizingField && (
+        <div className="ai-modal-overlay">
+          <div className="ai-modal-container">
+            <div className="ai-modal-header">
+              <div className="header-title">
+                <Sparkles size={18} className="sparkle-icon" />
+                <span>AI Achievement Optimizer (STAR Format)</span>
+              </div>
+              <button 
+                type="button" 
+                className="close-modal-btn" 
+                onClick={() => setOptimizingField(null)}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="ai-modal-body">
+              <div className="input-group">
+                <label>Current Bullet Point / Achievement Description</label>
+                <textarea
+                  value={
+                    optimizingField.type === "experience"
+                      ? resumeData.experiences[optimizingField.index].description
+                      : resumeData.projects[optimizingField.index].description
+                  }
+                  onChange={(e) => {
+                    if (optimizingField.type === "experience") {
+                      updateExperience(optimizingField.index, "description", e.target.value);
+                    } else {
+                      updateProject(optimizingField.index, "description", e.target.value);
+                    }
+                  }}
+                  placeholder="Write what you did..."
+                  rows={4}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Target Job Description (Optional - Helps tailor keywords)</label>
+                <textarea
+                  value={targetJobDesc}
+                  onChange={(e) => setTargetJobDesc(e.target.value)}
+                  placeholder="Paste the target job description to align keywords and required tech stack..."
+                  rows={3}
+                />
+              </div>
+
+              {!optimizeLoading && !optimizeResult && (
+                <button 
+                  type="button" 
+                  className="optimize-action-btn"
+                  onClick={handleRunOptimization}
+                >
+                  <Sparkles size={14} /> Optimize Achievement
+                </button>
+              )}
+
+              {optimizeLoading && (
+                <div className="optimize-loading">
+                  <div className="spinner"></div>
+                  <p>Analyzing metrics, action verbs, and formatting. Rewriting into STAR format...</p>
+                </div>
+              )}
+
+              {optimizeError && (
+                <div className="optimize-error">
+                  <p>{optimizeError}</p>
+                  <button type="button" className="optimize-action-btn" onClick={handleRunOptimization}>Retry Optimization</button>
+                </div>
+              )}
+
+              {optimizeResult && (
+                <div className="optimize-result-container">
+                  <div className="result-card optimized">
+                    <div className="card-header-label">✨ AI Optimized STAR Version</div>
+                    <p className="result-text">{optimizeResult.optimized}</p>
+                  </div>
+
+                  <div className="result-card explanation">
+                    <div className="card-header-label">💡 Recruiter Impact & Context</div>
+                    <p className="result-text">{optimizeResult.explanation}</p>
+                  </div>
+
+                  {!localStorage.getItem("token") && (
+                    <div className="guest-modal-banner">
+                      ⚠️ Running in Preview Mode. Login or Sign up to access unlimited personalized AI enhancements.
+                    </div>
+                  )}
+
+                  <div className="result-actions">
+                    <button 
+                      type="button" 
+                      className="apply-opt-btn"
+                      onClick={handleApplyOptimization}
+                    >
+                      Apply Optimization
+                    </button>
+                    <button 
+                      type="button" 
+                      className="discard-opt-btn"
+                      onClick={() => setOptimizeResult(null)}
+                    >
+                      Modify & Try Again
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
