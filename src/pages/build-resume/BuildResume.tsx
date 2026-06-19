@@ -17,8 +17,52 @@ import {
   Mail,
   Phone,
   MapPin,
-  FileCheck
+  FileCheck,
+  Award,
+  Layout,
+  ExternalLink
 } from "lucide-react";
+
+const Github = ({ size = 24, className = "", style, ...props }: { size?: number | string; className?: string; style?: React.CSSProperties } & React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={`lucide lucide-github ${className}`}
+    style={style}
+    {...props}
+  >
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4" />
+    <path d="M9 18c-4.51 2-5-2-7-2" />
+  </svg>
+);
+
+const Linkedin = ({ size = 24, className = "", style, ...props }: { size?: number | string; className?: string; style?: React.CSSProperties } & React.SVGProps<SVGSVGElement>) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={`lucide lucide-linkedin ${className}`}
+    style={style}
+    {...props}
+  >
+    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
+    <rect width="4" height="12" x="2" y="9" />
+    <circle cx="4" cy="4" r="2" />
+  </svg>
+);
 
 interface Experience {
   company: string;
@@ -42,6 +86,8 @@ interface Project {
   technologies: string;
   link: string;
   description: string;
+  githubLink?: string;
+  liveDemoLink?: string;
 }
 
 interface ResumeData {
@@ -51,8 +97,21 @@ interface ResumeData {
   phone: string;
   location: string;
   website: string;
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
   summary: string;
   skills: string; // comma-separated
+  softSkills?: string; // comma-separated
+  languages?: string; // comma-separated
+  certifications?: string; // comma-separated
+  achievements?: string; // comma-separated
+  githubContributions?: string;
+  techStackFront?: string;
+  techStackBack?: string;
+  techStackDatabase?: string;
+  techStackTools?: string;
+  techStackCloud?: string;
   experiences: Experience[];
   educations: Education[];
   projects: Project[];
@@ -61,13 +120,26 @@ interface ResumeData {
 
 const SAMPLE_DATA: ResumeData = {
   fullName: "Alex Mercer",
-  title: "Full Stack Engineer",
+  title: "Senior Software Engineer",
   email: "alex.mercer@email.com",
   phone: "+1 (555) 019-2834",
   location: "San Francisco, CA",
-  website: "github.com/alexmercer",
-  summary: "Innovative Full Stack Engineer with 4+ years of experience designing, building, and deploying robust web applications. Passionate about AI integrations, developer experience, and creating clean, scalable code architectures.",
-  skills: "React, TypeScript, Node.js, Express, PostgreSQL, Next.js, Docker, REST APIs, Git, Tailwind CSS",
+  website: "alexmercer.dev",
+  linkedin: "linkedin.com/in/alexmercer",
+  github: "github.com/alexmercer",
+  portfolio: "alexmercer.dev/portfolio",
+  summary: "Innovative Software Engineer with 6+ years of experience designing, building, and deploying high-performance web applications and distributed systems. Passionate about AI integrations, developer experience, system architecture, and creating clean, scalable code architectures.",
+  skills: "React, TypeScript, Node.js, Express, PostgreSQL, Next.js, Docker, AWS, Git, REST APIs, Tailwind CSS",
+  softSkills: "Technical Leadership, Team Mentorship, System Design, Agile Methodologies, Communication",
+  languages: "English (Native), Spanish (Conversational), Japanese (Basic)",
+  certifications: "AWS Certified Solutions Architect, Certified ScrumMaster (CSM), Google Cloud Professional Cloud Architect",
+  achievements: "Reduced cloud infrastructure costs by 35% through container optimization, Mentored 5+ junior developers to promotion path, Architected SaaS platform handling 1M+ daily requests.",
+  githubContributions: "Core maintainer for several popular open-source utility packages. Contributed to Webpack, React-Query, and Tailwind CSS ecosystems.",
+  techStackFront: "React, TypeScript, Next.js, Redux, Tailwind CSS, HTML5/CSS3",
+  techStackBack: "Node.js, Express, Go, Java, Spring Boot, GraphQL",
+  techStackDatabase: "PostgreSQL, MongoDB, Redis, MySQL",
+  techStackTools: "Docker, Kubernetes, Git, GitHub Actions, Jenkins, Webpack",
+  techStackCloud: "AWS (S3, EC2, Lambda, ECS), GCP, Vercel",
   experiences: [
     {
       company: "ByteCraft Solutions",
@@ -75,7 +147,7 @@ const SAMPLE_DATA: ResumeData = {
       startDate: "2024-03",
       endDate: "Present",
       location: "San Francisco, CA",
-      description: "Led development of a cloud-based SaaS dashboard, improving response times by 40%. Directed a team of 4 frontend engineers and introduced TypeScript, reducing runtime crashes by 25%."
+      description: "Led development of a cloud-based SaaS dashboard, improving response times by 40%.\nDirected a team of 4 frontend engineers and introduced TypeScript, reducing runtime crashes by 25%.\nImplemented CI/CD pipelines utilizing GitHub Actions, speeding up release cycles by 50%."
     },
     {
       company: "AppSphere Inc.",
@@ -83,7 +155,7 @@ const SAMPLE_DATA: ResumeData = {
       startDate: "2022-06",
       endDate: "2024-02",
       location: "Remote",
-      description: "Developed and maintained high-traffic customer portals. Integrated secure Stripe payments and designed scalable PostgreSQL database schemas, supporting 50k+ active daily users."
+      description: "Developed and maintained high-traffic customer portals. Integrated secure Stripe payments and designed scalable PostgreSQL database schemas, supporting 50k+ active daily users.\nOptimized SQL queries and indexed database tables to speed up overall reporting API latency by 30%."
     }
   ],
   educations: [
@@ -100,12 +172,16 @@ const SAMPLE_DATA: ResumeData = {
       name: "AI Portfolio Planner",
       technologies: "React, OpenAI API, Node.js",
       link: "github.com/alexmercer/ai-planner",
+      githubLink: "github.com/alexmercer/ai-planner",
+      liveDemoLink: "ai-planner.alexmercer.dev",
       description: "A web application that generates personalized career roadmaps and matches users with online course suggestions based on skill gaps."
     },
     {
       name: "SwiftStore E-Commerce API",
       technologies: "Express, PostgreSQL, Redis",
       link: "github.com/alexmercer/swiftstore",
+      githubLink: "github.com/alexmercer/swiftstore",
+      liveDemoLink: "api.swiftstore.dev",
       description: "A high-performance backend API featuring JSON Web Token auth, caching, and payment processing with less than 80ms average response times."
     }
   ],
@@ -119,8 +195,21 @@ const INITIAL_DATA: ResumeData = {
   phone: "",
   location: "",
   website: "",
+  linkedin: "",
+  github: "",
+  portfolio: "",
   summary: "",
   skills: "",
+  softSkills: "",
+  languages: "",
+  certifications: "",
+  achievements: "",
+  githubContributions: "",
+  techStackFront: "",
+  techStackBack: "",
+  techStackDatabase: "",
+  techStackTools: "",
+  techStackCloud: "",
   experiences: [],
   educations: [],
   projects: [],
@@ -135,7 +224,7 @@ const TECH_KEYWORDS_LIST = [
 
 const BuildResume: React.FC = () => {
   const [resumeData, setResumeData] = useState<ResumeData>(INITIAL_DATA);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("ats");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("template-1");
   const [selectedColor, setSelectedColor] = useState<string>("purple");
   const [atsScore, setAtsScore] = useState<number>(0);
   const [scoreTips, setScoreTips] = useState<string[]>([]);
@@ -147,6 +236,9 @@ const BuildResume: React.FC = () => {
   });
   const [matchedKeywords, setMatchedKeywords] = useState<string[]>([]);
   const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
+
+  // Template Selector State
+  const [showTemplateSelector, setShowTemplateSelector] = useState<boolean>(true);
 
   // AI Optimizer States
   const [optimizingField, setOptimizingField] = useState<{type: "experience" | "project", index: number} | null>(null);
@@ -161,7 +253,8 @@ const BuildResume: React.FC = () => {
     experience: true,
     education: true,
     projects: true,
-    skills: true
+    skills: true,
+    additional: true // New section for custom templates
   });
 
   const toggleSection = (section: keyof typeof openSections) => {
@@ -222,14 +315,19 @@ const BuildResume: React.FC = () => {
     let formattingScore = 0;
     
     // Check template (ATS template gets max points)
-    if (selectedTemplate === "ats") {
+    if (selectedTemplate === "template-1") {
       formattingScore += 10;
-    } else if (selectedTemplate === "classic") {
+    } else if (selectedTemplate === "template-3") {
+      formattingScore += 9;
+      tips.push("Software Engineer template has excellent tech readability.");
+    } else if (selectedTemplate === "template-2") {
+      formattingScore += 8;
+      tips.push("Premium Executive sidebar layout is clean. Ensure key info is kept parsed.");
+    } else if (selectedTemplate === "template-4") {
       formattingScore += 7;
-      tips.push("Elegant Classic template has moderate ATS readability. Select Tech ATS-Optimized template for best results.");
+      tips.push("Modern Creative template uses gradients; select Template 1 (ATS-Friendly) for ultimate compliance.");
     } else {
       formattingScore += 5;
-      tips.push("Sidebar layout in Modern template is hard for some legacy ATS systems to parse sequentially. Use Tech ATS-Optimized layout.");
     }
 
     // Check photo (ATS standards advise against photos)
@@ -536,6 +634,9 @@ const BuildResume: React.FC = () => {
         </div>
 
         <div className="toolbar-actions">
+          <button className="tool-btn templates-btn" onClick={() => setShowTemplateSelector(true)} style={{ backgroundColor: "#1e293b", color: "#e2e8f0", border: "1px solid #334155" }}>
+            <Layout size={16} /> Choose Template
+          </button>
           <button className="tool-btn sample-btn" onClick={handleFillSample}>
             <RefreshCw size={16} /> Fill Sample Data
           </button>
@@ -557,11 +658,23 @@ const BuildResume: React.FC = () => {
             <div className="custom-options">
               <div className="option-group">
                 <label>Template</label>
-                <select value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)}>
-                  <option value="modern">Modern Minimalist (Sidebar)</option>
-                  <option value="classic">Elegant Classic (Centered)</option>
-                  <option value="ats">Tech ATS-Optimized (Clean)</option>
-                </select>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <select value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)} style={{ flex: 1 }}>
+                    <option value="template-1">Professional ATS-Friendly</option>
+                    <option value="template-2">Premium Executive</option>
+                    <option value="template-3">Software Engineer Spec</option>
+                    <option value="template-4">Modern Creative</option>
+                  </select>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowTemplateSelector(true)}
+                    className="select-template-btn"
+                    style={{ backgroundColor: "#334155", color: "#ffffff", border: "none", borderRadius: "6px", padding: "0 12px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    title="Open Template Selector"
+                  >
+                    <Layout size={14} />
+                  </button>
+                </div>
               </div>
 
               <div className="option-group">
@@ -754,7 +867,30 @@ const BuildResume: React.FC = () => {
                         name="website"
                         value={resumeData.website}
                         onChange={handleFieldChange}
-                        placeholder="github.com/johndoe"
+                        placeholder="alexmercer.dev"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="input-row">
+                    <div className="form-group">
+                      <label>LinkedIn Profile URL</label>
+                      <input
+                        type="text"
+                        name="linkedin"
+                        value={resumeData.linkedin || ""}
+                        onChange={handleFieldChange}
+                        placeholder="linkedin.com/in/username"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>GitHub Profile URL</label>
+                      <input
+                        type="text"
+                        name="github"
+                        value={resumeData.github || ""}
+                        onChange={handleFieldChange}
+                        placeholder="github.com/username"
                       />
                     </div>
                   </div>
@@ -1016,13 +1152,34 @@ const BuildResume: React.FC = () => {
                       </div>
 
                       <div className="form-group">
-                        <label>Project Link / URL</label>
+                        <label>Main Project Link / URL</label>
                         <input
                           type="text"
                           value={proj.link}
                           onChange={(e) => updateProject(index, "link", e.target.value)}
                           placeholder="github.com/myusername/project"
                         />
+                      </div>
+
+                      <div className="input-row">
+                        <div className="form-group">
+                          <label>GitHub Repository Link</label>
+                          <input
+                            type="text"
+                            value={proj.githubLink || ""}
+                            onChange={(e) => updateProject(index, "githubLink", e.target.value)}
+                            placeholder="github.com/username/repo"
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label>Live Demo Link</label>
+                          <input
+                            type="text"
+                            value={proj.liveDemoLink || ""}
+                            onChange={(e) => updateProject(index, "liveDemoLink", e.target.value)}
+                            placeholder="myproject.demo.com"
+                          />
+                        </div>
                       </div>
 
                       <div className="form-group">
@@ -1057,22 +1214,143 @@ const BuildResume: React.FC = () => {
             {/* 5. SKILLS */}
             <div className={`accordion-item ${openSections.skills ? "open" : ""}`}>
               <div className="accordion-header" onClick={() => toggleSection("skills")}>
-                <span className="title"><Wrench size={18} /> Skills</span>
+                <span className="title"><Wrench size={18} /> Technical & Soft Skills</span>
                 {openSections.skills ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
               </div>
 
               {openSections.skills && (
-                <div className="accordion-body">
+                <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   <div className="form-group">
-                    <label>Skills (Separate with commas)</label>
+                    <label>Technical Skills (Separate with commas)</label>
                     <textarea
                       name="skills"
                       value={resumeData.skills}
                       onChange={handleFieldChange}
-                      placeholder="React, TypeScript, Java, SQL, Git, Problem Solving..."
-                      rows={3}
+                      placeholder="React, TypeScript, Java, SQL, Git..."
+                      rows={2}
                     />
-                    <small className="help-text">Entering skills separated by commas allows templates to display them as beautiful individual tags.</small>
+                    <small className="help-text">Standard technical skills used across all templates.</small>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Soft Skills (Separate with commas)</label>
+                    <textarea
+                      name="softSkills"
+                      value={resumeData.softSkills || ""}
+                      onChange={handleFieldChange}
+                      placeholder="Leadership, System Design, Communication, Problem Solving..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div style={{ borderTop: "1px dashed #334155", paddingTop: "12px", marginTop: "4px" }}>
+                    <h4 style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Developer Tech Stack Grouping (Template 3 Only)</h4>
+                    <div className="form-group" style={{ marginBottom: "10px" }}>
+                      <label>Frontend Stack</label>
+                      <input
+                        type="text"
+                        name="techStackFront"
+                        value={resumeData.techStackFront || ""}
+                        onChange={handleFieldChange}
+                        placeholder="React, Next.js, Redux, HTML/CSS"
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: "10px" }}>
+                      <label>Backend Stack</label>
+                      <input
+                        type="text"
+                        name="techStackBack"
+                        value={resumeData.techStackBack || ""}
+                        onChange={handleFieldChange}
+                        placeholder="Node.js, Express, Spring Boot, Go"
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: "10px" }}>
+                      <label>Database Stack</label>
+                      <input
+                        type="text"
+                        name="techStackDatabase"
+                        value={resumeData.techStackDatabase || ""}
+                        onChange={handleFieldChange}
+                        placeholder="PostgreSQL, MongoDB, Redis, MySQL"
+                      />
+                    </div>
+                    <div className="form-group" style={{ marginBottom: "10px" }}>
+                      <label>Tools & Platforms</label>
+                      <input
+                        type="text"
+                        name="techStackTools"
+                        value={resumeData.techStackTools || ""}
+                        onChange={handleFieldChange}
+                        placeholder="Docker, Kubernetes, Git, Jenkins, Webpack"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Cloud Services</label>
+                      <input
+                        type="text"
+                        name="techStackCloud"
+                        value={resumeData.techStackCloud || ""}
+                        onChange={handleFieldChange}
+                        placeholder="AWS (S3, EC2, Lambda), GCP, Azure"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 6. ADDITIONAL INFO */}
+            <div className={`accordion-item ${openSections.additional ? "open" : ""}`}>
+              <div className="accordion-header" onClick={() => toggleSection("additional")}>
+                <span className="title"><Award size={18} /> Additional Information</span>
+                {openSections.additional ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+
+              {openSections.additional && (
+                <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div className="form-group">
+                    <label>Certifications (Separate with commas)</label>
+                    <textarea
+                      name="certifications"
+                      value={resumeData.certifications || ""}
+                      onChange={handleFieldChange}
+                      placeholder="AWS Certified Solutions Architect, Certified ScrumMaster..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Languages (Separate with commas)</label>
+                    <textarea
+                      name="languages"
+                      value={resumeData.languages || ""}
+                      onChange={handleFieldChange}
+                      placeholder="English (Native), Spanish (Fluent), Japanese (Basic)..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Achievements & Highlights (Separate with commas)</label>
+                    <textarea
+                      name="achievements"
+                      value={resumeData.achievements || ""}
+                      onChange={handleFieldChange}
+                      placeholder="Reduced page latency by 40%, Mentored 5 junior engineers..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>GitHub Contributions Summary (Template 3 Only)</label>
+                    <textarea
+                      name="githubContributions"
+                      value={resumeData.githubContributions || ""}
+                      onChange={handleFieldChange}
+                      placeholder="Active open-source contributor. Maintained react-query-helper with 2k+ downloads weekly..."
+                      rows={2}
+                    />
                   </div>
                 </div>
               )}
@@ -1092,312 +1370,547 @@ const BuildResume: React.FC = () => {
             {/* The Resume Sheet Mockup */}
             <div className={`resume-paper template-${selectedTemplate}`} id="resume-print-area">
               
-              {/* RENDER TEMPLATE 1: MODERN MINIMALIST (Sidebar Layout) */}
-              {selectedTemplate === "modern" && (
-                <div className="modern-layout">
-                  {/* Left Sidebar */}
-                  <div className="modern-sidebar" style={{ borderRightColor: activeColor }}>
+              {/* RENDER TEMPLATE 1: PROFESSIONAL ATS-FRIENDLY */}
+              {selectedTemplate === "template-1" && (
+                <div className="template-1-layout">
+                  <header className="t1-header">
+                    <h1 className="t1-name">{resumeData.fullName || "Your Full Name"}</h1>
+                    <div className="t1-title" style={{ color: "#1E3A8A" }}>{resumeData.title || "Professional Title"}</div>
+                    <div className="t1-contact-row">
+                      {resumeData.phone && <span>{resumeData.phone}</span>}
+                      {resumeData.email && <span> | {resumeData.email}</span>}
+                      {resumeData.linkedin && <span> | {resumeData.linkedin}</span>}
+                      {resumeData.github && <span> | {resumeData.github}</span>}
+                      {resumeData.website && <span> | {resumeData.website}</span>}
+                    </div>
+                  </header>
+
+                  {resumeData.summary && (
+                    <div className="t1-section">
+                      <h3 className="t1-section-title" style={{ color: "#1E3A8A", borderBottom: "1.5px solid #1E3A8A" }}>Professional Summary</h3>
+                      <p className="t1-text">{resumeData.summary}</p>
+                    </div>
+                  )}
+
+                  {(resumeData.skills || resumeData.softSkills) && (
+                    <div className="t1-section">
+                      <h3 className="t1-section-title" style={{ color: "#1E3A8A", borderBottom: "1.5px solid #1E3A8A" }}>Skills</h3>
+                      {resumeData.skills && (
+                        <p className="t1-text">
+                          <strong>Technical Skills:</strong> {resumeData.skills.split(",").map(s => s.trim()).filter(Boolean).join(", ")}
+                        </p>
+                      )}
+                      {resumeData.softSkills && (
+                        <p className="t1-text" style={{ marginTop: "4px" }}>
+                          <strong>Soft Skills:</strong> {resumeData.softSkills.split(",").map(s => s.trim()).filter(Boolean).join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {resumeData.experiences.length > 0 && (
+                    <div className="t1-section">
+                      <h3 className="t1-section-title" style={{ color: "#1E3A8A", borderBottom: "1.5px solid #1E3A8A" }}>Experience</h3>
+                      {resumeData.experiences.map((exp, idx) => (
+                        <div key={idx} className="t1-item">
+                          <div className="t1-item-header">
+                            <strong>{exp.company}</strong> — <em>{exp.role}</em>
+                            <span className="t1-item-date">{exp.startDate} - {exp.endDate}</span>
+                          </div>
+                          <div className="t1-item-sub">{exp.location}</div>
+                          <ul className="t1-bullets">
+                            {exp.description.split("\n").map((b, bIdx) => (
+                              <li key={bIdx}>{b}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {resumeData.projects.length > 0 && (
+                    <div className="t1-section">
+                      <h3 className="t1-section-title" style={{ color: "#1E3A8A", borderBottom: "1.5px solid #1E3A8A" }}>Projects</h3>
+                      {resumeData.projects.map((proj, idx) => (
+                        <div key={idx} className="t1-item">
+                          <div className="t1-item-header">
+                            <strong>{proj.name}</strong> ({proj.technologies})
+                            {proj.link && <span className="t1-item-link">{proj.link}</span>}
+                          </div>
+                          <p className="t1-text">{proj.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {resumeData.educations.length > 0 && (
+                    <div className="t1-section">
+                      <h3 className="t1-section-title" style={{ color: "#1E3A8A", borderBottom: "1.5px solid #1E3A8A" }}>Education</h3>
+                      {resumeData.educations.map((edu, idx) => (
+                        <div key={idx} className="t1-item">
+                          <div className="t1-item-header">
+                            <strong>{edu.school}</strong>
+                            <span className="t1-item-date">{edu.gradDate}</span>
+                          </div>
+                          <div className="t1-item-sub">{edu.degree} in {edu.field} | {edu.location}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {resumeData.certifications && (
+                    <div className="t1-section">
+                      <h3 className="t1-section-title" style={{ color: "#1E3A8A", borderBottom: "1.5px solid #1E3A8A" }}>Certifications</h3>
+                      <p className="t1-text">{resumeData.certifications.split(",").map(c => c.trim()).filter(Boolean).join(" • ")}</p>
+                    </div>
+                  )}
+
+                  {resumeData.languages && (
+                    <div className="t1-section">
+                      <h3 className="t1-section-title" style={{ color: "#1E3A8A", borderBottom: "1.5px solid #1E3A8A" }}>Languages</h3>
+                      <p className="t1-text">{resumeData.languages.split(",").map(l => l.trim()).filter(Boolean).join(", ")}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* RENDER TEMPLATE 2: PREMIUM EXECUTIVE */}
+              {selectedTemplate === "template-2" && (
+                <div className="template-2-layout">
+                  {/* Left Sidebar 30% */}
+                  <div className="t2-sidebar" style={{ backgroundColor: "#0F172A" }}>
                     {resumeData.photoUrl && (
-                      <div className="sidebar-photo-container">
-                        <img src={resumeData.photoUrl} alt={resumeData.fullName} className="sidebar-photo" />
+                      <div className="t2-photo-container">
+                        <img src={resumeData.photoUrl} alt={resumeData.fullName} className="t2-photo" />
                       </div>
                     )}
-                    <div className="sidebar-header-box" style={{ backgroundColor: activeColor }}>
-                      <h1 className="name">{resumeData.fullName || "Your Full Name"}</h1>
-                      <div className="job-title">{resumeData.title || "Job Title / Specialization"}</div>
-                    </div>
                     
-                    <div className="sidebar-section">
-                      <h4 className="sidebar-title" style={{ color: activeColor }}>CONTACT</h4>
-                      <div className="sidebar-item"><Mail size={12} /> <span>{resumeData.email || "email@address.com"}</span></div>
-                      <div className="sidebar-item"><Phone size={12} /> <span>{resumeData.phone || "+1 (000) 000-0000"}</span></div>
-                      <div className="sidebar-item"><MapPin size={12} /> <span>{resumeData.location || "City, State"}</span></div>
+                    <div className="t2-sidebar-section">
+                      <h4 className="t2-sidebar-title">Contact</h4>
+                      <div className="t2-contact-item"><Mail size={12} /> <span>{resumeData.email || "email@address.com"}</span></div>
+                      <div className="t2-contact-item"><Phone size={12} /> <span>{resumeData.phone || "+1 (000) 000-0000"}</span></div>
+                      <div className="t2-contact-item"><MapPin size={12} /> <span>{resumeData.location || "City, State"}</span></div>
                       {resumeData.website && (
-                        <div className="sidebar-item"><Globe size={12} /> <span>{resumeData.website}</span></div>
+                        <div className="t2-contact-item"><Globe size={12} /> <span>{resumeData.website}</span></div>
+                      )}
+                      {resumeData.linkedin && (
+                        <div className="t2-contact-item"><Linkedin size={12} /> <span>{resumeData.linkedin}</span></div>
+                      )}
+                      {resumeData.github && (
+                        <div className="t2-contact-item"><Github size={12} /> <span>{resumeData.github}</span></div>
                       )}
                     </div>
 
-                    <div className="sidebar-section">
-                      <h4 className="sidebar-title" style={{ color: activeColor }}>SKILLS</h4>
-                      <div className="skills-vertical">
-                        {resumeData.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, idx) => (
-                          <span key={idx} className="skill-tag" style={{ borderLeftColor: activeColor }}>{s}</span>
-                        ))}
+                    {resumeData.skills && (
+                      <div className="t2-sidebar-section">
+                        <h4 className="t2-sidebar-title">Expertise</h4>
+                        <div className="t2-sidebar-tags">
+                          {resumeData.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, idx) => (
+                            <span key={idx} className="t2-sidebar-tag">{s}</span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    {resumeData.educations.length > 0 && (
-                      <div className="sidebar-section">
-                        <h4 className="sidebar-title" style={{ color: activeColor }}>EDUCATION</h4>
-                        {resumeData.educations.map((edu, idx) => (
-                          <div key={idx} className="edu-sidebar-item">
-                            <strong className="edu-deg">{edu.degree} {edu.field ? `in ${edu.field}` : ""}</strong>
-                            <div className="edu-sch">{edu.school}</div>
-                            <div className="edu-date">{edu.gradDate} | {edu.location}</div>
-                          </div>
-                        ))}
+                    {resumeData.languages && (
+                      <div className="t2-sidebar-section">
+                        <h4 className="t2-sidebar-title">Languages</h4>
+                        <div className="t2-sidebar-list">
+                          {resumeData.languages.split(",").map(l => l.trim()).filter(Boolean).map((l, idx) => (
+                            <div key={idx} className="t2-list-item">{l}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {resumeData.certifications && (
+                      <div className="t2-sidebar-section">
+                        <h4 className="t2-sidebar-title">Certifications</h4>
+                        <div className="t2-sidebar-list">
+                          {resumeData.certifications.split(",").map(c => c.trim()).filter(Boolean).map((c, idx) => (
+                            <div key={idx} className="t2-list-item" style={{ fontSize: "9px", marginBottom: "6px" }}><Award size={10} style={{ marginRight: "4px", display: "inline-block", verticalAlign: "middle" }} /> {c}</div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Right Main Body */}
-                  <div className="modern-main">
+                  {/* Main Content 70% */}
+                  <div className="t2-main">
+                    <div className="t2-header">
+                      <h1 className="t2-name" style={{ color: "#0F172A" }}>{resumeData.fullName || "Your Full Name"}</h1>
+                      <div className="t2-job-title" style={{ color: activeColor }}>{resumeData.title || "Professional Title"}</div>
+                    </div>
+
                     {resumeData.summary && (
-                      <div className="main-section">
-                        <h3 className="section-title" style={{ color: activeColor }}>PROFILE</h3>
-                        <p className="profile-text">{resumeData.summary}</p>
+                      <div className="t2-section">
+                        <h3 className="t2-section-title" style={{ color: "#0F172A", borderBottomColor: "#0F172A" }}>Professional Summary</h3>
+                        <p className="t2-summary-text">{resumeData.summary}</p>
                       </div>
                     )}
 
                     {resumeData.experiences.length > 0 && (
-                      <div className="main-section">
-                        <h3 className="section-title" style={{ color: activeColor }}>WORK EXPERIENCE</h3>
+                      <div className="t2-section">
+                        <h3 className="t2-section-title" style={{ color: "#0F172A", borderBottomColor: "#0F172A" }}>Work Experience</h3>
                         {resumeData.experiences.map((exp, idx) => (
-                          <div key={idx} className="exp-preview-item">
-                            <div className="exp-meta">
-                              <strong>{exp.role}</strong>
-                              <span className="exp-date">{exp.startDate} - {exp.endDate}</span>
+                          <div key={idx} className="t2-exp-item">
+                            <div className="t2-item-row">
+                              <strong className="t2-role">{exp.role}</strong>
+                              <span className="t2-date">{exp.startDate} - {exp.endDate}</span>
                             </div>
-                            <div className="exp-sub">
-                              <span className="comp">{exp.company}</span>
-                              <span className="loc">{exp.location}</span>
+                            <div className="t2-item-row sub">
+                              <span className="t2-company">{exp.company}</span>
+                              <span className="t2-location">{exp.location}</span>
                             </div>
-                            <p className="exp-desc">{exp.description}</p>
+                            <ul className="t2-bullet-list">
+                              {exp.description.split("\n").map((b, bIdx) => (
+                                <li key={bIdx}>{b}</li>
+                              ))}
+                            </ul>
                           </div>
                         ))}
                       </div>
                     )}
 
                     {resumeData.projects.length > 0 && (
-                      <div className="main-section">
-                        <h3 className="section-title" style={{ color: activeColor }}>PROJECTS</h3>
+                      <div className="t2-section">
+                        <h3 className="t2-section-title" style={{ color: "#0F172A", borderBottomColor: "#0F172A" }}>Key Projects</h3>
                         {resumeData.projects.map((proj, idx) => (
-                          <div key={idx} className="project-preview-item">
-                            <div className="proj-meta">
-                              <strong>{proj.name}</strong>
-                              <span className="proj-tech" style={{ color: activeColor }}>{proj.technologies}</span>
+                          <div key={idx} className="t2-project-item">
+                            <div className="t2-item-row">
+                              <strong className="t2-proj-name">{proj.name}</strong>
+                              <span className="t2-proj-tech" style={{ color: activeColor }}>{proj.technologies}</span>
                             </div>
-                            {proj.link && <div className="proj-link">{proj.link}</div>}
-                            <p className="proj-desc">{proj.description}</p>
+                            <p className="t2-proj-desc">{proj.description}</p>
                           </div>
                         ))}
+                      </div>
+                    )}
+
+                    {resumeData.educations.length > 0 && (
+                      <div className="t2-section">
+                        <h3 className="t2-section-title" style={{ color: "#0F172A", borderBottomColor: "#0F172A" }}>Education</h3>
+                        {resumeData.educations.map((edu, idx) => (
+                          <div key={idx} className="t2-edu-item">
+                            <div className="t2-item-row">
+                              <strong>{edu.school}</strong>
+                              <span className="t2-date">{edu.gradDate}</span>
+                            </div>
+                            <div className="t2-item-row sub">
+                              <span>{edu.degree} {edu.field ? `in ${edu.field}` : ""}</span>
+                              <span>{edu.location}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {resumeData.achievements && (
+                      <div className="t2-section">
+                        <h3 className="t2-section-title" style={{ color: "#0F172A", borderBottomColor: "#0F172A" }}>Key Achievements</h3>
+                        <ul className="t2-achievements-list">
+                          {resumeData.achievements.split(",").map(s => s.trim()).filter(Boolean).map((ach, idx) => (
+                            <li key={idx}>{ach}</li>
+                          ))}
+                        </ul>
                       </div>
                     )}
                   </div>
                 </div>
               )}
 
-              {/* RENDER TEMPLATE 2: ELEGANT CLASSIC (Centered Layout) */}
-              {selectedTemplate === "classic" && (
-                <div className="classic-layout">
-                  <header className="classic-header" style={{ borderBottomColor: activeColor }}>
-                    {resumeData.photoUrl ? (
-                      <div className="classic-header-content">
-                        <div className="classic-photo-container">
-                          <img src={resumeData.photoUrl} alt={resumeData.fullName} className="classic-photo" />
-                        </div>
-                        <div className="classic-header-text">
-                          <h1 className="name" style={{ color: activeColor }}>{resumeData.fullName || "Your Full Name"}</h1>
-                          <div className="job-title">{resumeData.title || "Job Title / Specialization"}</div>
-                          
-                          <div className="contact-row" style={{ justifyContent: "flex-start" }}>
-                            {resumeData.email && <span>{resumeData.email}</span>}
-                            {resumeData.phone && <span> • {resumeData.phone}</span>}
-                            {resumeData.location && <span> • {resumeData.location}</span>}
-                            {resumeData.website && <span> • {resumeData.website}</span>}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <h1 className="name" style={{ color: activeColor }}>{resumeData.fullName || "Your Full Name"}</h1>
-                        <div className="job-title">{resumeData.title || "Job Title / Specialization"}</div>
-                        
-                        <div className="contact-row">
-                          {resumeData.email && <span>{resumeData.email}</span>}
-                          {resumeData.phone && <span> • {resumeData.phone}</span>}
-                          {resumeData.location && <span> • {resumeData.location}</span>}
-                          {resumeData.website && <span> • {resumeData.website}</span>}
-                        </div>
-                      </>
-                    )}
+              {/* RENDER TEMPLATE 3: SOFTWARE ENGINEER */}
+              {selectedTemplate === "template-3" && (
+                <div className="template-3-layout">
+                  <header className="t3-header">
+                    <div className="t3-header-main">
+                      <h1 className="t3-name">{resumeData.fullName || "Developer Name"}</h1>
+                      <div className="t3-title" style={{ color: "#1E3A8A" }}>{resumeData.title || "Software Engineer"}</div>
+                    </div>
+                    <div className="t3-contact-grid">
+                      {resumeData.email && <div className="t3-contact-item"><Mail size={11} /> <span>{resumeData.email}</span></div>}
+                      {resumeData.phone && <div className="t3-contact-item"><Phone size={11} /> <span>{resumeData.phone}</span></div>}
+                      {resumeData.location && <div className="t3-contact-item"><MapPin size={11} /> <span>{resumeData.location}</span></div>}
+                      {resumeData.website && <div className="t3-contact-item"><Globe size={11} /> <span>{resumeData.website}</span></div>}
+                      {resumeData.github && <div className="t3-contact-item"><Github size={11} /> <span>{resumeData.github}</span></div>}
+                      {resumeData.linkedin && <div className="t3-contact-item"><Linkedin size={11} /> <span>{resumeData.linkedin}</span></div>}
+                    </div>
                   </header>
 
                   {resumeData.summary && (
-                    <div className="classic-section">
-                      <h3 className="classic-section-title" style={{ borderBottomColor: activeColor }}>PROFESSIONAL SUMMARY</h3>
-                      <p className="summary-body">{resumeData.summary}</p>
+                    <div className="t3-section">
+                      <h3 className="t3-section-title" style={{ color: "#1E3A8A" }}>// PROFESSIONAL SUMMARY</h3>
+                      <p className="t3-summary-body">{resumeData.summary}</p>
                     </div>
                   )}
 
+                  {/* Grouped Skills */}
+                  <div className="t3-section">
+                    <h3 className="t3-section-title" style={{ color: "#1E3A8A" }}>// TECHNICAL SKILLS</h3>
+                    <div className="t3-skills-grouped">
+                      {resumeData.techStackFront && (
+                        <div className="t3-skill-group-row">
+                          <span className="t3-group-name">Frontend:</span>
+                          <span className="t3-group-values">{resumeData.techStackFront}</span>
+                        </div>
+                      )}
+                      {resumeData.techStackBack && (
+                        <div className="t3-skill-group-row">
+                          <span className="t3-group-name">Backend:</span>
+                          <span className="t3-group-values">{resumeData.techStackBack}</span>
+                        </div>
+                      )}
+                      {resumeData.techStackDatabase && (
+                        <div className="t3-skill-group-row">
+                          <span className="t3-group-name">Database:</span>
+                          <span className="t3-group-values">{resumeData.techStackDatabase}</span>
+                        </div>
+                      )}
+                      {resumeData.techStackTools && (
+                        <div className="t3-skill-group-row">
+                          <span className="t3-group-name">Tools/Platforms:</span>
+                          <span className="t3-group-values">{resumeData.techStackTools}</span>
+                        </div>
+                      )}
+                      {resumeData.techStackCloud && (
+                        <div className="t3-skill-group-row">
+                          <span className="t3-group-name">Cloud:</span>
+                          <span className="t3-group-values">{resumeData.techStackCloud}</span>
+                        </div>
+                      )}
+                      {/* Fallback to standard skills if groups are empty */}
+                      {!resumeData.techStackFront && !resumeData.techStackBack && resumeData.skills && (
+                        <div className="t3-skill-group-row">
+                          <span className="t3-group-name">Technologies:</span>
+                          <span className="t3-group-values">{resumeData.skills}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {resumeData.experiences.length > 0 && (
-                    <div className="classic-section">
-                      <h3 className="classic-section-title" style={{ borderBottomColor: activeColor }}>PROFESSIONAL EXPERIENCE</h3>
+                    <div className="t3-section">
+                      <h3 className="t3-section-title" style={{ color: "#1E3A8A" }}>// WORK EXPERIENCE</h3>
                       {resumeData.experiences.map((exp, idx) => (
-                        <div key={idx} className="classic-exp-item">
-                          <div className="classic-item-row">
-                            <strong>{exp.company}</strong>
-                            <span>{exp.location}</span>
+                        <div key={idx} className="t3-exp-item">
+                          <div className="t3-item-header">
+                            <span className="t3-role">{exp.role} @ <strong>{exp.company}</strong></span>
+                            <span className="t3-date">[{exp.startDate} - {exp.endDate}]</span>
                           </div>
-                          <div className="classic-item-row sub">
-                            <i>{exp.role}</i>
-                            <span>{exp.startDate} – {exp.endDate}</span>
-                          </div>
-                          <p className="classic-desc">{exp.description}</p>
+                          <div className="t3-item-sub">{exp.location}</div>
+                          <ul className="t3-bullets">
+                            {exp.description.split("\n").map((b, bIdx) => (
+                              <li key={bIdx}>{b}</li>
+                            ))}
+                          </ul>
                         </div>
                       ))}
                     </div>
                   )}
 
                   {resumeData.projects.length > 0 && (
-                    <div className="classic-section">
-                      <h3 className="classic-section-title" style={{ borderBottomColor: activeColor }}>PROJECTS</h3>
+                    <div className="t3-section">
+                      <h3 className="t3-section-title" style={{ color: "#1E3A8A" }}>// PROJECTS</h3>
                       {resumeData.projects.map((proj, idx) => (
-                        <div key={idx} className="classic-proj-item">
-                          <div className="classic-item-row">
-                            <strong>{proj.name}</strong>
-                            <span>{proj.link}</span>
+                        <div key={idx} className="t3-proj-item">
+                          <div className="t3-proj-header">
+                            <strong className="t3-proj-name">{proj.name}</strong>
+                            <span className="t3-proj-tech">[{proj.technologies}]</span>
                           </div>
-                          <div className="classic-techs">Technologies: <i>{proj.technologies}</i></div>
-                          <p className="classic-desc">{proj.description}</p>
+                          <p className="t3-proj-desc">{proj.description}</p>
+                          <div className="t3-proj-links">
+                            {proj.githubLink && (
+                              <span className="t3-proj-link">
+                                <Github size={10} style={{ display: "inline-block", marginRight: "3px" }} />
+                                GitHub: <a href={`https://${proj.githubLink}`} target="_blank" rel="noopener noreferrer">{proj.githubLink}</a>
+                              </span>
+                            )}
+                            {proj.liveDemoLink && (
+                              <span className="t3-proj-link" style={{ marginLeft: "12px" }}>
+                                <ExternalLink size={10} style={{ display: "inline-block", marginRight: "3px" }} />
+                                Demo: <a href={`https://${proj.liveDemoLink}`} target="_blank" rel="noopener noreferrer">{proj.liveDemoLink}</a>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {resumeData.githubContributions && (
+                    <div className="t3-section">
+                      <h3 className="t3-section-title" style={{ color: "#1E3A8A" }}>// OPEN SOURCE & GITHUB</h3>
+                      <p className="t3-contributions-text">{resumeData.githubContributions}</p>
+                    </div>
+                  )}
+
+                  {resumeData.certifications && (
+                    <div className="t3-section">
+                      <h3 className="t3-section-title" style={{ color: "#1E3A8A" }}>// CERTIFICATIONS</h3>
+                      <div className="t3-certs-grid">
+                        {resumeData.certifications.split(",").map((c, idx) => (
+                          <div key={idx} className="t3-cert-item">&gt; {c.trim()}</div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
                   {resumeData.educations.length > 0 && (
-                    <div className="classic-section">
-                      <h3 className="classic-section-title" style={{ borderBottomColor: activeColor }}>EDUCATION</h3>
+                    <div className="t3-section">
+                      <h3 className="t3-section-title" style={{ color: "#1E3A8A" }}>// EDUCATION</h3>
                       {resumeData.educations.map((edu, idx) => (
-                        <div key={idx} className="classic-edu-item">
-                          <div className="classic-item-row">
-                            <strong>{edu.school}</strong>
-                            <span>{edu.location}</span>
-                          </div>
-                          <div className="classic-item-row sub">
-                            <span>{edu.degree} in {edu.field}</span>
-                            <span>Graduation: {edu.gradDate}</span>
+                        <div key={idx} className="t3-edu-item">
+                          <div className="t3-item-header">
+                            <span><strong>{edu.school}</strong> — {edu.degree} in {edu.field}</span>
+                            <span className="t3-date">Class of {edu.gradDate.split("-")[0] || edu.gradDate}</span>
                           </div>
                         </div>
                       ))}
-                    </div>
-                  )}
-
-                  {resumeData.skills && (
-                    <div className="classic-section">
-                      <h3 className="classic-section-title" style={{ borderBottomColor: activeColor }}>CORE SKILLS</h3>
-                      <div className="classic-skills-tags">
-                        {resumeData.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, idx) => (
-                          <span key={idx} className="classic-skill-tag">{s}</span>
-                        ))}
-                      </div>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* RENDER TEMPLATE 3: TECH ATS-OPTIMIZED (Minimal layout) */}
-              {selectedTemplate === "ats" && (
-                <div className="ats-layout">
-                  <header className="ats-header">
-                    {resumeData.photoUrl ? (
-                      <div className="ats-header-flex">
-                        <div className="ats-header-text">
-                          <h1 className="name">{resumeData.fullName || "Your Full Name"}</h1>
-                          <div className="job-title" style={{ color: activeColor }}>{resumeData.title || "Job Title / Specialization"}</div>
-                          <div className="contact-details">
-                            {resumeData.email && <span>{resumeData.email} | </span>}
-                            {resumeData.phone && <span>{resumeData.phone} | </span>}
-                            {resumeData.location && <span>{resumeData.location} | </span>}
-                            {resumeData.website && <span>{resumeData.website}</span>}
-                          </div>
+              {/* RENDER TEMPLATE 4: MODERN CREATIVE */}
+              {selectedTemplate === "template-4" && (
+                <div className="template-4-layout">
+                  {/* Decorative Gradient Bar */}
+                  <div className="t4-gradient-header-bar"></div>
+
+                  <header className="t4-header">
+                    <div className="t4-header-left">
+                      {resumeData.photoUrl && (
+                        <div className="t4-photo-container">
+                          <img src={resumeData.photoUrl} alt={resumeData.fullName} className="t4-photo" />
                         </div>
-                        <div className="ats-photo-container">
-                          <img src={resumeData.photoUrl} alt={resumeData.fullName} className="ats-photo" />
-                        </div>
+                      )}
+                      <div className="t4-header-text">
+                        <h1 className="t4-name">{resumeData.fullName || "Creative Name"}</h1>
+                        <div className="t4-title-gradient">{resumeData.title || "UX Architect / Engineer"}</div>
                       </div>
-                    ) : (
-                      <>
-                        <h1 className="name">{resumeData.fullName || "Your Full Name"}</h1>
-                        <div className="job-title" style={{ color: activeColor }}>{resumeData.title || "Job Title / Specialization"}</div>
-                        <div className="contact-details">
-                          {resumeData.email && <span>{resumeData.email} | </span>}
-                          {resumeData.phone && <span>{resumeData.phone} | </span>}
-                          {resumeData.location && <span>{resumeData.location} | </span>}
-                          {resumeData.website && <span>{resumeData.website}</span>}
-                        </div>
-                      </>
-                    )}
+                    </div>
+                    
+                    <div className="t4-contact-card">
+                      {resumeData.email && <div className="t4-contact-item"><Mail size={12} /> <span>{resumeData.email}</span></div>}
+                      {resumeData.phone && <div className="t4-contact-item"><Phone size={12} /> <span>{resumeData.phone}</span></div>}
+                      {resumeData.location && <div className="t4-contact-item"><MapPin size={12} /> <span>{resumeData.location}</span></div>}
+                      
+                      <div className="t4-portfolio-links">
+                        {resumeData.website && (
+                          <a href={`https://${resumeData.website}`} target="_blank" rel="noopener noreferrer" className="t4-link-btn">
+                            <Globe size={11} /> Portfolio
+                          </a>
+                        )}
+                        {resumeData.linkedin && (
+                          <a href={`https://${resumeData.linkedin}`} target="_blank" rel="noopener noreferrer" className="t4-link-btn">
+                            <Linkedin size={11} /> LinkedIn
+                          </a>
+                        )}
+                        {resumeData.github && (
+                          <a href={`https://${resumeData.github}`} target="_blank" rel="noopener noreferrer" className="t4-link-btn">
+                            <Github size={11} /> GitHub
+                          </a>
+                        )}
+                      </div>
+                    </div>
                   </header>
 
                   {resumeData.summary && (
-                    <div className="ats-section">
-                      <h3 className="ats-section-title" style={{ color: activeColor }}>SUMMARY</h3>
-                      <p className="ats-body">{resumeData.summary}</p>
+                    <div className="t4-card t4-section">
+                      <h3 className="t4-section-title">About Me</h3>
+                      <p className="t4-summary-body">{resumeData.summary}</p>
                     </div>
                   )}
 
                   {resumeData.skills && (
-                    <div className="ats-section">
-                      <h3 className="ats-section-title" style={{ color: activeColor }}>TECHNICAL SKILLS</h3>
-                      <p className="ats-skills-line">
-                        <strong>Skills: </strong>
-                        {resumeData.skills.split(",").map(s => s.trim()).filter(Boolean).join(", ")}
-                      </p>
+                    <div className="t4-card t4-section">
+                      <h3 className="t4-section-title">Skills & Toolkit</h3>
+                      <div className="t4-skills-tags">
+                        {resumeData.skills.split(",").map(s => s.trim()).filter(Boolean).map((s, idx) => (
+                          <span key={idx} className="t4-skill-tag">{s}</span>
+                        ))}
+                        {resumeData.softSkills && resumeData.softSkills.split(",").map(s => s.trim()).filter(Boolean).map((s, idx) => (
+                          <span key={idx} className="t4-skill-tag soft">{s}</span>
+                        ))}
+                      </div>
                     </div>
                   )}
 
                   {resumeData.experiences.length > 0 && (
-                    <div className="ats-section">
-                      <h3 className="ats-section-title" style={{ color: activeColor }}>EXPERIENCE</h3>
-                      {resumeData.experiences.map((exp, idx) => (
-                        <div key={idx} className="ats-exp-item">
-                          <div className="ats-row">
-                            <strong>{exp.company}</strong>
-                            <span>{exp.location}</span>
+                    <div className="t4-card t4-section">
+                      <h3 className="t4-section-title">Experience Timeline</h3>
+                      <div className="t4-timeline">
+                        {resumeData.experiences.map((exp, idx) => (
+                          <div key={idx} className="t4-timeline-item">
+                            <div className="t4-timeline-dot"></div>
+                            <div className="t4-timeline-content">
+                              <div className="t4-timeline-header">
+                                <strong className="t4-role">{exp.role}</strong>
+                                <span className="t4-date">{exp.startDate} - {exp.endDate}</span>
+                              </div>
+                              <div className="t4-timeline-sub">
+                                <span className="t4-company">{exp.company}</span>
+                                <span className="t4-loc"> • {exp.location}</span>
+                              </div>
+                              <ul className="t4-bullets">
+                                {exp.description.split("\n").map((b, bIdx) => (
+                                  <li key={bIdx}>{b}</li>
+                                ))}
+                              </ul>
+                            </div>
                           </div>
-                          <div className="ats-row sub">
-                            <span>{exp.role}</span>
-                            <span>{exp.startDate} - {exp.endDate}</span>
-                          </div>
-                          <p className="ats-bullet-desc">{exp.description}</p>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
 
                   {resumeData.projects.length > 0 && (
-                    <div className="ats-section">
-                      <h3 className="ats-section-title" style={{ color: activeColor }}>PROJECTS</h3>
-                      {resumeData.projects.map((proj, idx) => (
-                        <div key={idx} className="ats-proj-item">
-                          <div className="ats-row">
-                            <strong>{proj.name} ({proj.technologies})</strong>
-                            <span>{proj.link}</span>
+                    <div className="t4-card t4-section">
+                      <h3 className="t4-section-title">Featured Projects</h3>
+                      <div className="t4-projects-grid">
+                        {resumeData.projects.map((proj, idx) => (
+                          <div key={idx} className="t4-project-card">
+                            <div className="t4-project-header">
+                              <strong className="t4-proj-name">{proj.name}</strong>
+                              <span className="t4-proj-tech">{proj.technologies}</span>
+                            </div>
+                            <p className="t4-proj-desc">{proj.description}</p>
+                            {proj.link && (
+                              <a href={`https://${proj.link}`} target="_blank" rel="noopener noreferrer" className="t4-proj-link">
+                                <ExternalLink size={10} /> View Project Link
+                              </a>
+                            )}
                           </div>
-                          <p className="ats-bullet-desc">{proj.description}</p>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {resumeData.educations.length > 0 && (
-                    <div className="ats-section">
-                      <h3 className="ats-section-title" style={{ color: activeColor }}>EDUCATION</h3>
-                      {resumeData.educations.map((edu, idx) => (
-                        <div key={idx} className="ats-edu-item">
-                          <div className="ats-row">
-                            <strong>{edu.school}</strong>
-                            <span>{edu.location}</span>
+                  <div className="t4-two-col-grid">
+                    {resumeData.educations.length > 0 && (
+                      <div className="t4-card t4-section">
+                        <h3 className="t4-section-title">Education</h3>
+                        {resumeData.educations.map((edu, idx) => (
+                          <div key={idx} className="t4-edu-item">
+                            <strong>{edu.degree} in {edu.field}</strong>
+                            <div className="t4-edu-school">{edu.school}</div>
+                            <div className="t4-edu-meta">{edu.gradDate} | {edu.location}</div>
                           </div>
-                          <div className="ats-row sub">
-                            <span>{edu.degree} in {edu.field}</span>
-                            <span>Graduated: {edu.gradDate}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
+
+                    {resumeData.certifications && (
+                      <div className="t4-card t4-section">
+                        <h3 className="t4-section-title">Certificates</h3>
+                        <ul className="t4-cert-list">
+                          {resumeData.certifications.split(",").map((c, idx) => (
+                            <li key={idx}>{c.trim()}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1514,6 +2027,106 @@ const BuildResume: React.FC = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Template Selection Overlay Modal */}
+      {showTemplateSelector && (
+        <div className="template-selector-overlay">
+          <div className="template-selector-container">
+            <div className="template-selector-header">
+              <h2>Select a Resume Template</h2>
+              <p>Choose from our curated professional styles designed to get you hired</p>
+            </div>
+
+            <div className="template-cards-grid">
+              {/* Template 1 Card */}
+              <div 
+                className={`template-card-item ${selectedTemplate === "template-1" ? "active" : ""}`}
+                onClick={() => setSelectedTemplate("template-1")}
+              >
+                <div className="template-preview-mock template-1-mock">
+                  <div className="mock-header"></div>
+                  <div className="mock-body-line"></div>
+                  <div className="mock-body-line short"></div>
+                  <div className="mock-body-line"></div>
+                </div>
+                <div className="template-card-info">
+                  <span className="template-tag ats-tag">ATS-Friendly</span>
+                  <h3>Professional ATS-Friendly</h3>
+                  <p>Clean, single-column design optimized with dark blue accents (#1E3A8A) for passing automated screenings.</p>
+                </div>
+              </div>
+
+              {/* Template 2 Card */}
+              <div 
+                className={`template-card-item ${selectedTemplate === "template-2" ? "active" : ""}`}
+                onClick={() => setSelectedTemplate("template-2")}
+              >
+                <div className="template-preview-mock template-2-mock">
+                  <div className="mock-sidebar"></div>
+                  <div className="mock-main">
+                    <div className="mock-body-line short"></div>
+                    <div className="mock-body-line"></div>
+                  </div>
+                </div>
+                <div className="template-card-info">
+                  <span className="template-tag exec-tag">Premium Executive</span>
+                  <h3>Premium Executive</h3>
+                  <p>30/70 structured layout with a navy blue sidebar (#0F172A). Best for showcasing profile photo and core experience.</p>
+                </div>
+              </div>
+
+              {/* Template 3 Card */}
+              <div 
+                className={`template-card-item ${selectedTemplate === "template-3" ? "active" : ""}`}
+                onClick={() => setSelectedTemplate("template-3")}
+              >
+                <div className="template-preview-mock template-3-mock">
+                  <div className="mock-header-monospace"></div>
+                  <div className="mock-body-line"></div>
+                  <div className="mock-grid">
+                    <div className="mock-cell"></div>
+                    <div className="mock-cell"></div>
+                  </div>
+                </div>
+                <div className="template-card-info">
+                  <span className="template-tag tech-tag">Software Engineer</span>
+                  <h3>Software Engineer Spec</h3>
+                  <p>Developer-focused design featuring dark blue headers, monospace accents, and dedicated sections for tech stacks.</p>
+                </div>
+              </div>
+
+              {/* Template 4 Card */}
+              <div 
+                className={`template-card-item ${selectedTemplate === "template-4" ? "active" : ""}`}
+                onClick={() => setSelectedTemplate("template-4")}
+              >
+                <div className="template-preview-mock template-4-mock">
+                  <div className="mock-header-gradient"></div>
+                  <div className="mock-cards">
+                    <div className="mock-mini-card"></div>
+                    <div className="mock-mini-card"></div>
+                  </div>
+                </div>
+                <div className="template-card-info">
+                  <span className="template-tag creative-tag">Modern Creative</span>
+                  <h3>Modern Creative</h3>
+                  <p>Stunning design with purple/blue gradients, modern card layouts, subtle animations, and premium shadows.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="template-selector-actions">
+              <button 
+                type="button" 
+                className="select-template-confirm-btn"
+                onClick={() => setShowTemplateSelector(false)}
+              >
+                Start Customizing with This Template
+              </button>
             </div>
           </div>
         </div>
