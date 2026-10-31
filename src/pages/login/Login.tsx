@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Api from "../../api/Api";
 import "./Login.css";
 import {
@@ -12,6 +12,7 @@ import {
   Sparkles,
   X,
   Key,
+  ShieldAlert,
 } from "lucide-react";
 
 const decodeJwt = (token: string) => {
@@ -34,6 +35,10 @@ const decodeJwt = (token: string) => {
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTarget = (location.state as any)?.from || "/build-resume";
+  const redirectMessage = (location.state as any)?.message;
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -81,7 +86,7 @@ const Login = () => {
           setLoading(false);
           // Remove query params from URL
           window.history.replaceState({}, document.title, window.location.pathname);
-          navigate("/");
+          navigate(redirectTarget);
         } catch (err: any) {
           setLoading(false);
           console.error("GitHub Login Error:", err);
@@ -150,7 +155,7 @@ const Login = () => {
       }
 
       setLoading(false);
-      navigate("/");
+      navigate(redirectTarget);
     } catch (err: any) {
       setLoading(false);
       console.error("Google Login Error:", err);
@@ -192,7 +197,7 @@ const Login = () => {
       }
 
       setLoading(false);
-      navigate("/");
+      navigate(redirectTarget);
     } catch (err: any) {
       setLoading(false);
       console.error("Mock Login Error:", err);
@@ -222,7 +227,7 @@ const Login = () => {
       }
       
       setLoading(false);
-      navigate("/");
+      navigate(redirectTarget);
     } catch (error: any) {
       setLoading(false);
       console.error(error);
@@ -326,6 +331,12 @@ const Login = () => {
             </p>
 
             <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+              {redirectMessage && (
+                <div className="auth-guard-banner" style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#991b1b", padding: "12px", borderRadius: "8px", marginBottom: "15px", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  <ShieldAlert size={20} style={{ flexShrink: 0 }} />
+                  <span>{redirectMessage}</span>
+                </div>
+              )}
               {errorMsg && (
                 <div className="error-message" style={{ color: "#ef4444", marginBottom: "15px", fontSize: "14px", fontWeight: "500", textAlign: "center" }}>
                   ⚠️ {errorMsg}

@@ -1,78 +1,102 @@
 import React from "react";
-import "./About.css";
-import { Award, Shield, Target, Users } from "lucide-react";
+import { Shield, Sparkles, CheckCircle2 } from "lucide-react";
+import { Badge } from "../../../components/ui/Badge";
 
-const stats = [
-  { id: 1, value: "10,000+", label: "Resumes Created", icon: <Award size={24} /> },
-  { id: 2, value: "98%", label: "ATS Pass Rate", icon: <Shield size={24} /> },
-  { id: 3, value: "15,000+", label: "Skills Analyzed", icon: <Target size={24} /> },
-  { id: 4, value: "5,000+", label: "Happy Users", icon: <Users size={24} /> }
-];
-
-const AboutSection: React.FC = () => {
+export const AboutSection: React.FC = () => {
   return (
-    <section className="about-section" id="about">
-      <div className="about-container">
-        <div className="about-grid">
-          {/* Left: Content */}
-          <div className="about-content">
-            <span className="about-badge">✦ WHO WE ARE</span>
-            <h2>Empowering Careers through Intelligent Technology</h2>
-            <p className="about-lead">
-              Our mission is to bridge the gap between talented professionals and their dream careers. We utilize intelligent keyword scoring and resume formatting to put you ahead of the competition.
-            </p>
-            <p className="about-body">
-              Whether you are an entry-level graduate looking to break into the tech industry or a seasoned engineer aiming for senior roles, our automated systems check for missing skills, grade your resume's readability, and help you customize templates that get noticed.
+    <section id="about" className="py-24 bg-slate-950/40 border-t border-slate-800/60 relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+          {/* Left Column: Narrative */}
+          <div className="lg:col-span-7 space-y-6">
+            <Badge variant="purple" size="md">
+              ✦ WHO WE ARE
+            </Badge>
+
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+              Empowering Careers Through Intelligent Technology
+            </h2>
+
+            <p className="text-base text-slate-300 leading-relaxed font-normal">
+              Our mission is to bridge the gap between talented professionals and their dream
+              roles. We combine ATS optimization models with industry skill mapping to give you
+              a decisive edge over keyword filtering systems.
             </p>
 
-            <div className="about-values">
-              <div className="value-card">
-                <h4>AI-Driven Insights</h4>
-                <p>We analyze job descriptions and detect the precise keywords recruiters are searching for.</p>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              Whether you are a university graduate stepping into tech or an experienced
+              engineer targeting senior architecture roles, RBSGA delivers actionable feedback,
+              structural clarity, and real-time guidance.
+            </p>
+
+            {/* Core Values */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+                <div className="flex items-center gap-2 mb-2 text-indigo-400 font-semibold text-sm">
+                  <Sparkles className="w-4 h-4" />
+                  <span>AI-Driven Insights</span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  We analyze job descriptions and detect the exact technical keywords recruiters
+                  require.
+                </p>
               </div>
-              <div className="value-card">
-                <h4>ATS-Friendly Design</h4>
-                <p>Templates engineered specifically to bypass screening filters and read clearly on screens.</p>
+
+              <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+                <div className="flex items-center gap-2 mb-2 text-emerald-400 font-semibold text-sm">
+                  <Shield className="w-4 h-4" />
+                  <span>ATS-Compliant Structure</span>
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Clean hierarchy and typography engineered to pass machine screening with top scores.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Right: Stats and Visuals */}
-          <div className="about-stats-container">
-            <div className="stats-grid">
-              {stats.map((stat) => (
-                <div className="stat-card" key={stat.id}>
-                  <div className="stat-icon-wrapper">
-                    {stat.icon}
-                  </div>
-                  <h3>{stat.value}</h3>
-                  <p>{stat.label}</p>
+          {/* Right Column: Interactive Engine Visualizer Card */}
+          <div className="lg:col-span-5">
+            <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-2xl backdrop-blur-xl space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-rose-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-amber-500/80" />
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
                 </div>
-              ))}
-            </div>
-
-            <div className="about-visual-card">
-              <div className="visual-top">
-                <span className="visual-dot red"></span>
-                <span className="visual-dot yellow"></span>
-                <span className="visual-dot green"></span>
+                <span className="text-xs font-mono text-slate-400">Match-Engine v2.4</span>
               </div>
-              <div className="visual-body">
-                <h4>AI Match Engine</h4>
-                <div className="visual-bar-item">
-                  <div className="bar-labels">
-                    <span>Keyword Relevance</span>
-                    <span>94%</span>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: "94%" }}></div></div>
+
+              <div>
+                <h4 className="text-base font-bold text-white mb-4 flex items-center justify-between">
+                  <span>Keyword Relevance</span>
+                  <span className="text-indigo-400 font-mono text-sm">94%</span>
+                </h4>
+                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+                  <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full w-[94%]" />
                 </div>
-                <div className="visual-bar-item">
-                  <div className="bar-labels">
-                    <span>Missing Skills Gap</span>
-                    <span>6% (Resolved)</span>
-                  </div>
-                  <div className="bar-track"><div className="bar-fill resolve" style={{ width: "6%" }}></div></div>
+
+                <h4 className="text-base font-bold text-white mb-4 flex items-center justify-between">
+                  <span>ATS Readability Score</span>
+                  <span className="text-emerald-400 font-mono text-sm">98%</span>
+                </h4>
+                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden mb-6">
+                  <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full w-[98%]" />
                 </div>
+
+                <h4 className="text-base font-bold text-white mb-4 flex items-center justify-between">
+                  <span>Skill Deficiencies</span>
+                  <span className="text-amber-400 font-mono text-sm">Resolved</span>
+                </h4>
+                <div className="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full w-[100%]" />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                  <CheckCircle2 className="w-4 h-4" /> All checks passing
+                </span>
+                <span>Real-time verification</span>
               </div>
             </div>
           </div>

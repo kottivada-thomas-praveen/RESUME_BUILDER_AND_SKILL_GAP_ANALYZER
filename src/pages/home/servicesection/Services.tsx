@@ -1,5 +1,4 @@
 import React from "react";
-import "./Services.css";
 import {
   FileText,
   BarChart3,
@@ -7,173 +6,122 @@ import {
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
+import { Badge } from "../../../components/ui/Badge";
+import { Link } from "react-router-dom";
 
-const services = [
-  {
-    id: 1,
-    icon: <FileText size={22} />,
-    title: "Resume Builder",
-    description:
-      "Create ATS-friendly, professional resumes in minutes with smart suggestions, modern templates, and real-time feedback.",
-    points: [
-      "ATS optimization",
-      "Smart content suggestions",
-      "Multiple professional templates",
-    ],
-    link: "#",
-    variant: "resume",
-  },
-  {
-    id: 2,
-    icon: <BarChart3 size={22} />,
-    title: "Skill Gap Analyzer",
-    description:
-      "Analyze your skills against job requirements and identify gaps to prioritize what to learn next.",
-    points: [
-      "Job matching & skill comparison",
-      "Gap identification & prioritization",
-      "Personalized learning recommendations",
-    ],
-    link: "#",
-    variant: "analyzer",
-  },
-  {
-    id: 3,
-    icon: <Sparkles size={22} />,
-    title: "Career Recommendations",
-    description:
-      "Get personalized career paths, role matches, and learning suggestions to reach your goals faster.",
-    points: [
-      "Personalized career roadmap",
-      "Role match & opportunity insights",
-      "Curated learning paths",
-    ],
-    link: "#",
-    variant: "career",
-  },
-];
+export const ServicesSection: React.FC = () => {
+  const services = [
+    {
+      id: 1,
+      icon: FileText,
+      title: "AI Resume Builder",
+      description:
+        "Create ATS-friendly, professional resumes in minutes with smart suggestions, modern formatting, and instant PDF download.",
+      points: [
+        "ATS optimization algorithms",
+        "Smart bullet point suggestions",
+        "Modern professional layouts",
+      ],
+      link: "/build-resume",
+      actionText: "Create Resume",
+      color: "from-indigo-500/20 to-indigo-600/5",
+      border: "hover:border-indigo-500/40",
+      accent: "text-indigo-400",
+    },
+    {
+      id: 2,
+      icon: BarChart3,
+      title: "Skill Gap Analyzer",
+      description:
+        "Evaluate your skillset against target role requirements to highlight key missing competencies and increase interview callbacks.",
+      points: [
+        "Job description matching",
+        "Technical & soft skill breakdown",
+        "Actionable prioritization",
+      ],
+      link: "/analyze-resume",
+      actionText: "Analyze Gaps",
+      color: "from-purple-500/20 to-purple-600/5",
+      border: "hover:border-purple-500/40",
+      accent: "text-purple-400",
+    },
+    {
+      id: 3,
+      icon: Sparkles,
+      title: "Intelligent Recommendations",
+      description:
+        "Receive tailored learning paths, course recommendations, and strategic project additions to bridge detected skill voids.",
+      points: [
+        "Personalized career roadmaps",
+        "Role readiness scoring",
+        "Targeted skill acquisition",
+      ],
+      link: "/analyze-resume",
+      actionText: "Get Recommendations",
+      color: "from-emerald-500/20 to-emerald-600/5",
+      border: "hover:border-emerald-500/40",
+      accent: "text-emerald-400",
+    },
+  ];
 
-const ServicesSection: React.FC = () => {
   return (
-    <section className="services-section" id="services">
-      <div className="services-container">
-        <div className="services-header">
-          <span className="services-badge">✦ WHAT WE DO</span>
-          <h2>Our Services</h2>
-          <p>
-            Build smarter resumes and close skill gaps with confidence.
+    <section id="services" className="py-24 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+          <Badge variant="primary" size="md">
+            ✦ WHAT WE DO
+          </Badge>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
+            Our Core Career Services
+          </h2>
+          <p className="text-base sm:text-lg text-slate-400 leading-relaxed">
+            Engineered to give job seekers an undeniable competitive advantage.
           </p>
         </div>
 
-        <div className="services-grid">
-          {services.map((service) => (
-            <article className="service-card" key={service.id}>
-              <div className={`service-illustration ${service.variant}`}>
-                {service.variant === "resume" && (
-                  <div className="mockup mockup-resume">
-                    <div className="resume-window">
-                      <div className="resume-sidebar" />
-                      <div className="resume-content">
-                        <div className="resume-top">
-                          <div className="avatar-circle" />
-                          <div className="resume-lines">
-                            <span />
-                            <span />
-                            <span className="short" />
-                          </div>
-                        </div>
-                        <div className="resume-block" />
-                        <div className="resume-block small" />
-                        <div className="resume-block small" />
-                      </div>
-                    </div>
-                    <div className="floating-tag tag-left">Aa</div>
-                    <div className="floating-tag tag-right">✓</div>
+        {/* Services Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {services.map((service) => {
+            const Icon = service.icon;
+            return (
+              <div
+                key={service.id}
+                className={`flex flex-col justify-between p-8 rounded-3xl bg-gradient-to-b ${service.color} bg-slate-900/60 border border-slate-800 ${service.border} transition-all duration-300 shadow-xl group hover:-translate-y-1`}
+              >
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center mb-6 shadow-inner group-hover:scale-105 transition-transform">
+                    <Icon className={`w-6 h-6 ${service.accent}`} />
                   </div>
-                )}
 
-                {service.variant === "analyzer" && (
-                  <div className="mockup mockup-analyzer">
-                    <div className="analytics-window">
-                      <div className="analytics-sidebar">
-                        <span />
-                        <span />
-                        <span />
-                        <span />
-                      </div>
-                      <div className="analytics-content">
-                        <div className="donut-score">
-                          <div className="score-ring">
-                            <strong>72%</strong>
-                            <small>Good Match</small>
-                          </div>
-                        </div>
-                        <div className="bars-group">
-                          <div className="bar-item">
-                            <span />
-                            <div><i style={{ width: "78%" }} /></div>
-                          </div>
-                          <div className="bar-item">
-                            <span />
-                            <div><i style={{ width: "65%" }} /></div>
-                          </div>
-                          <div className="bar-item">
-                            <span />
-                            <div><i style={{ width: "52%" }} /></div>
-                          </div>
-                          <div className="bar-item">
-                            <span />
-                            <div><i style={{ width: "70%" }} /></div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                  <h3 className="text-2xl font-bold text-white mb-3 tracking-tight">
+                    {service.title}
+                  </h3>
 
-                {service.variant === "career" && (
-                  <div className="mockup mockup-career">
-                    <div className="roadmap-window">
-                      <div className="road-path">
-                        <span className="dot one" />
-                        <span className="dot two" />
-                        <span className="dot three" />
-                        <div className="path-line" />
-                      </div>
-                      <div className="career-panels">
-                        <div className="career-pill active">Target Role</div>
-                        <div className="career-pill">Next Milestone</div>
-                        <div className="career-pill">Learning Path</div>
-                      </div>
-                    </div>
-                    <div className="target-badge">◎</div>
-                  </div>
-                )}
-              </div>
+                  <p className="text-sm text-slate-400 leading-relaxed mb-6">
+                    {service.description}
+                  </p>
 
-              <div className="service-content">
-                <div className="service-title-row">
-                  <div className="service-icon">{service.icon}</div>
-                  <h3>{service.title}</h3>
+                  <ul className="space-y-3 mb-8">
+                    {service.points.map((point, idx) => (
+                      <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-300">
+                        <CheckCircle2 className={`w-4 h-4 ${service.accent} shrink-0 mt-0.5`} />
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <p className="service-description">{service.description}</p>
-
-                <ul className="service-points">
-                  {service.points.map((point, index) => (
-                    <li key={index}>
-                      <CheckCircle2 size={16} />
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <a href={service.link} className="service-link">
-                  Learn more <ArrowRight size={16} />
-                </a>
+                <Link
+                  to={service.link}
+                  className="inline-flex items-center justify-between px-5 py-3 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-sm font-semibold text-white transition-all group-hover:border-slate-600"
+                >
+                  <span>{service.actionText}</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </div>
-            </article>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>

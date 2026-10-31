@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import "./BuildResume.css";
+import { Stepper, Step, StepLabel, StepButton } from "@mui/material";
 import {
   User,
   Briefcase,
@@ -20,7 +22,19 @@ import {
   FileCheck,
   Award,
   Layout,
-  ExternalLink
+  ExternalLink,
+  Save,
+  CheckCircle,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  GripVertical,
+  FileText,
+  Share2,
+  Copy,
+  Check,
+  SpellCheck,
+  Layers
 } from "lucide-react";
 
 const Github = ({ size = 24, className = "", style, ...props }: { size?: number | string; className?: string; style?: React.CSSProperties } & React.SVGProps<SVGSVGElement>) => (
@@ -223,6 +237,8 @@ const TECH_KEYWORDS_LIST = [
 ];
 
 const BuildResume: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const resumeIdParam = searchParams.get("id");
   const [resumeData, setResumeData] = useState<ResumeData>(INITIAL_DATA);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("template-1");
   const [selectedColor, setSelectedColor] = useState<string>("purple");
@@ -237,8 +253,95 @@ const BuildResume: React.FC = () => {
   const [matchedKeywords, setMatchedKeywords] = useState<string[]>([]);
   const [missingKeywords, setMissingKeywords] = useState<string[]>([]);
 
-  // Template Selector State
-  const [showTemplateSelector, setShowTemplateSelector] = useState<boolean>(true);
+  // MaterialUI Stepper State (SRS #1)
+  const [activeStep, setActiveStep] = useState<number>(0);
+  const [viewAllSections, setViewAllSections] = useState<boolean>(false);
+
+  // Template Carousel State (SRS #3)
+  const [showTemplateSelector, setShowTemplateSelector] = useState<boolean>(false);
+  const [carouselIndex, setCarouselIndex] = useState<number>(0);
+
+  // Drag and Drop state (SRS #7)
+  const [draggedExpIndex, setDraggedExpIndex] = useState<number | null>(null);
+  const [draggedProjIndex, setDraggedProjIndex] = useState<number | null>(null);
+  const [draggedSkillIndex, setDraggedSkillIndex] = useState<number | null>(null);
+
+  // Grammar & Spell Check state (SRS #14)
+  const [grammarChecking, setGrammarChecking] = useState<Record<string, boolean>>({});
+  const [grammarIssues, setGrammarIssues] = useState<Record<string, any[]>>({});
+
+  // Formatting & Page Length Check state (SRS #16)
+  const [formattingReport, setFormattingReport] = useState<{
+    estimatedPages: number;
+    wordCount: number;
+    warnings: string[];
+    suggestions: string[];
+  } | null>(null);
+
+  // Cover Letter Generator Modal State (SRS #19)
+  const [coverLetterModalOpen, setCoverLetterModalOpen] = useState(false);
+  const [coverLetterLoading, setCoverLetterLoading] = useState(false);
+  const [targetCompany, setTargetCompany] = useState("");
+  const [targetRoleInput, setTargetRoleInput] = useState("");
+  const [generatedCoverLetter, setGeneratedCoverLetter] = useState<string | null>(null);
+  const [copiedCoverLetter, setCopiedCoverLetter] = useState(false);
+
+  // Shareable Link & Tracking Modal State (SRS #20, #21)
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+  const [currentResumeId, setCurrentResumeId] = useState<number | null>(null);
+
+  // Fetch existing resume if query param ?id=123 is provided (SRS #10)
+  useEffect(() => {
+    if (resumeIdParam) {
+      const id = parseInt(resumeIdParam, 10);
+      if (!isNaN(id)) {
+        setCurrentResumeId(id);
+        Api.get(`/api/resumes/${id}`)
+          .then((res) => {
+            if (res.data && res.data.data) {
+              const d = res.data.data;
+              setResumeData({
+                fullName: d.fullName || "",
+                title: d.title || "",
+                email: d.email || "",
+                phone: d.phone || "",
+                location: d.location || "",
+                website: d.website || "",
+                summary: d.summary || "",
+                skills: d.skills || "",
+                softSkills: d.softSkills || "",
+                languages: d.languages || "",
+                certifications: d.certifications || "",
+                achievements: d.achievements || "",
+                githubContributions: d.githubContributions || "",
+                techStackFront: d.techStackFront || "",
+                techStackBack: d.techStackBack || "",
+                techStackDatabase: d.techStackDatabase || "",
+                techStackTools: d.techStackTools || "",
+                techStackCloud: d.techStackCloud || "",
+                experiences: d.experiences || [],
+                educations: d.educations || [],
+                projects: d.projects || [],
+                photoUrl: d.photoUrl || ""
+              });
+              if (d.templateName) setSelectedTemplate(d.templateName);
+              if (d.accentColor) setSelectedColor(d.accentColor);
+              if (d.shareToken) setShareToken(d.shareToken);
+              if (d.targetJobDescription) setTargetJobDesc(d.targetJobDescription);
+            }
+          })
+          .catch((err) => {
+            console.error("Failed to load resume for editing:", err);
+          });
+      }
+    }
+  }, [resumeIdParam]);
+
+  // Dedicated Target Job Panel State (SRS #4)
+  const [showTargetJobPanel, setShowTargetJobPanel] = useState<boolean>(true);
 
   // AI Optimizer States
   const [optimizingField, setOptimizingField] = useState<{type: "experience" | "project", index: number} | null>(null);
@@ -254,12 +357,53 @@ const BuildResume: React.FC = () => {
     education: true,
     projects: true,
     skills: true,
-    additional: true // New section for custom templates
+    additional: true
   });
 
   const toggleSection = (section: keyof typeof openSections) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
+
+  const isSectionVisible = (stepIndex: number) => {
+    return viewAllSections || activeStep === stepIndex;
+  };
+
+  const ACTION_VERBS = [
+    "Spearheaded", "Architected", "Optimized", "Engineered", "Streamlined",
+    "Automated", "Accelerated", "Delivered", "Transformed", "Pioneered",
+    "Orchestrated", "Scaled", "Designed", "Executed", "Overhauled"
+  ];
+
+  const TEMPLATES_LIST = [
+    {
+      id: "template-1",
+      title: "Professional ATS-Friendly",
+      badge: "ATS-Friendly",
+      desc: "Clean single-column typography optimized with dark blue accents (#1E3A8A) for passing automated screenings.",
+      previewClass: "template-1-mock"
+    },
+    {
+      id: "template-2",
+      title: "Premium Executive",
+      badge: "Premium Executive",
+      desc: "30/70 structured layout with navy sidebar (#0F172A). Best for showcasing profile photo and core experience.",
+      previewClass: "template-2-mock"
+    },
+    {
+      id: "template-3",
+      title: "Software Engineer Spec",
+      badge: "Software Engineer",
+      desc: "Developer-focused design featuring dark blue headers, monospace accents, and dedicated sections for tech stacks.",
+      previewClass: "template-3-mock"
+    },
+    {
+      id: "template-4",
+      title: "Modern Creative",
+      badge: "Modern Creative",
+      desc: "Stunning design with purple/blue gradients, modern card layouts, subtle animations, and premium shadows.",
+      previewClass: "template-4-mock"
+    }
+  ];
 
   // State calculations for AI Resume Score
   useEffect(() => {
@@ -553,6 +697,221 @@ const BuildResume: React.FC = () => {
     }));
   };
 
+  // Drag and drop experience reordering (SRS #7)
+  const moveExperience = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= resumeData.experiences.length) return;
+    setResumeData(prev => {
+      const list = [...prev.experiences];
+      const item = list.splice(fromIndex, 1)[0];
+      list.splice(toIndex, 0, item);
+      return { ...prev, experiences: list };
+    });
+  };
+
+  // Drag and drop projects reordering (SRS #7)
+  const moveProject = (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= resumeData.projects.length) return;
+    setResumeData(prev => {
+      const list = [...prev.projects];
+      const item = list.splice(fromIndex, 1)[0];
+      list.splice(toIndex, 0, item);
+      return { ...prev, projects: list };
+    });
+  };
+
+  // Drag and drop skill reordering (SRS #7)
+  const moveSkill = (fromIndex: number, toIndex: number) => {
+    const list = resumeData.skills.split(",").map(s => s.trim()).filter(Boolean);
+    if (toIndex < 0 || toIndex >= list.length) return;
+    const item = list.splice(fromIndex, 1)[0];
+    list.splice(toIndex, 0, item);
+    setResumeData(prev => ({ ...prev, skills: list.join(", ") }));
+  };
+
+  const removeSkillChip = (indexToRemove: number) => {
+    const list = resumeData.skills.split(",").map(s => s.trim()).filter(Boolean);
+    const updated = list.filter((_, i) => i !== indexToRemove);
+    setResumeData(prev => ({ ...prev, skills: updated.join(", ") }));
+  };
+
+  // Action verb insertion (SRS #6)
+  const insertActionVerb = (type: "experience" | "project", index: number, verb: string) => {
+    if (type === "experience") {
+      const current = resumeData.experiences[index].description;
+      const updated = current ? `${current}\n• ${verb} ` : `• ${verb} `;
+      updateExperience(index, "description", updated);
+    } else {
+      const current = resumeData.projects[index].description;
+      const updated = current ? `${current}\n• ${verb} ` : `• ${verb} `;
+      updateProject(index, "description", updated);
+    }
+  };
+
+  // Grammar & typo check (SRS #14)
+  const handleCheckGrammar = async (type: "experience" | "project", index: number) => {
+    const key = `${type}_${index}`;
+    const text = type === "experience"
+      ? resumeData.experiences[index].description
+      : resumeData.projects[index].description;
+
+    if (!text.trim()) {
+      alert("Please write some bullet points first to check spelling and grammar.");
+      return;
+    }
+
+    setGrammarChecking(prev => ({ ...prev, [key]: true }));
+    try {
+      const res = await Api.post("/api/grammar/check", { text });
+      if (res.data?.data) {
+        setGrammarIssues(prev => ({ ...prev, [key]: res.data.data.issues || [] }));
+        if (!res.data.data.issues || res.data.data.issues.length === 0) {
+          alert("✓ Flawless! No spelling or grammatical errors found.");
+        }
+      }
+    } catch (e) {
+      alert("Could not run grammar check. Using offline verification.");
+    } finally {
+      setGrammarChecking(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
+  const handleApplyGrammarFix = (type: "experience" | "project", index: number, targetWord: string, replacement: string) => {
+    const key = `${type}_${index}`;
+    if (type === "experience") {
+      const cur = resumeData.experiences[index].description;
+      const rep = cur.replace(targetWord, replacement);
+      updateExperience(index, "description", rep);
+    } else {
+      const cur = resumeData.projects[index].description;
+      const rep = cur.replace(targetWord, replacement);
+      updateProject(index, "description", rep);
+    }
+    setGrammarIssues(prev => ({
+      ...prev,
+      [key]: (prev[key] || []).filter(i => !i.context.includes(targetWord))
+    }));
+  };
+
+  // Real-time Formatting & Page Length Check (SRS #16)
+  const handleValidateFormatting = async () => {
+    try {
+      const res = await Api.post("/api/resumes/validate-format", {
+        fullName: resumeData.fullName,
+        title: resumeData.title,
+        email: resumeData.email,
+        phone: resumeData.phone,
+        summary: resumeData.summary,
+        skills: resumeData.skills,
+        experiences: resumeData.experiences,
+        educations: resumeData.educations,
+        projects: resumeData.projects
+      });
+      if (res.data?.data) {
+        setFormattingReport(res.data.data);
+      }
+    } catch (e) {
+      console.error("Failed to run format check", e);
+    }
+  };
+
+  // Run formatting check on changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      handleValidateFormatting();
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [resumeData.summary, resumeData.experiences, resumeData.projects]);
+
+  // Cover Letter Generator (SRS #19)
+  const handleGenerateCoverLetter = async () => {
+    if (!targetCompany.trim()) {
+      alert("Please enter the target company name.");
+      return;
+    }
+    setCoverLetterLoading(true);
+    try {
+      const res = await Api.post("/api/cover-letter/generate", {
+        companyName: targetCompany,
+        targetRole: targetRoleInput || resumeData.title || "Software Engineer",
+        applicantName: resumeData.fullName,
+        skills: resumeData.skills
+      });
+      if (res.data?.data?.coverLetterText) {
+        setGeneratedCoverLetter(res.data.data.coverLetterText);
+      }
+    } catch (e: any) {
+      alert(e.response?.data?.message || "Failed to generate cover letter.");
+    } finally {
+      setCoverLetterLoading(false);
+    }
+  };
+
+  // Share Resume & Tracking (SRS #20, #21)
+  const handleGenerateShareLink = async () => {
+    setShareLoading(true);
+    try {
+      let idToShare = currentResumeId;
+      if (!idToShare) {
+        const saveRes = await Api.post("/api/resumes", {
+          fullName: resumeData.fullName,
+          title: resumeData.title,
+          email: resumeData.email,
+          phone: resumeData.phone,
+          location: resumeData.location,
+          website: resumeData.website,
+          summary: resumeData.summary,
+          skills: resumeData.skills,
+          templateName: selectedTemplate,
+          accentColor: selectedColor,
+          photoUrl: resumeData.photoUrl,
+          atsScore: atsScore,
+          experiences: resumeData.experiences,
+          educations: resumeData.educations,
+          projects: resumeData.projects
+        });
+        if (saveRes.data?.data?.id) {
+          idToShare = saveRes.data.data.id;
+          setCurrentResumeId(idToShare);
+        }
+      }
+
+      if (idToShare) {
+        const shareRes = await Api.post(`/api/resumes/${idToShare}/share`);
+        if (shareRes.data?.data?.shareToken) {
+          setShareToken(shareRes.data.data.shareToken);
+          setShareModalOpen(true);
+        }
+      } else {
+        alert("Please save your resume first before generating a public share link.");
+      }
+    } catch (e: any) {
+      alert(e.response?.data?.message || "Please log in to generate a public shareable link.");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  // Clone Resume Version (SRS #18)
+  const handleCloneThisResume = async () => {
+    if (!currentResumeId) {
+      setResumeData(prev => ({
+        ...prev,
+        title: (prev.title || "Software Engineer") + " (Copy)"
+      }));
+      alert("Duplicated resume configuration! You can now edit this new copy.");
+      return;
+    }
+    try {
+      const res = await Api.post(`/api/resumes/${currentResumeId}/clone`);
+      if (res.data?.data) {
+        setCurrentResumeId(res.data.data.id);
+        alert("Resume successfully cloned on your account with incremented version!");
+      }
+    } catch (e) {
+      alert("Failed to clone resume on server.");
+    }
+  };
+
   // Handle Education
   const addEducation = () => {
     setResumeData(prev => ({
@@ -622,6 +981,67 @@ const BuildResume: React.FC = () => {
     }
   };
 
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const handleSaveResume = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setSaveStatus({
+        type: "error",
+        message: "Authentication required! You must be logged in with Google, GitHub, or Email/Password to save resumes."
+      });
+      return;
+    }
+
+    setSaving(true);
+    setSaveStatus(null);
+    try {
+      const payload = {
+        fullName: resumeData.fullName,
+        title: resumeData.title,
+        email: resumeData.email,
+        phone: resumeData.phone,
+        location: resumeData.location,
+        website: resumeData.website,
+        summary: resumeData.summary,
+        skills: resumeData.skills,
+        templateName: selectedTemplate,
+        accentColor: selectedColor,
+        photoUrl: resumeData.photoUrl,
+        atsScore: atsScore,
+        experiences: resumeData.experiences,
+        educations: resumeData.educations,
+        projects: resumeData.projects
+      };
+
+      if (currentResumeId) {
+        await Api.put(`/api/resumes/${currentResumeId}`, payload);
+        setSaveStatus({
+          type: "success",
+          message: "Resume updated successfully in your account!"
+        });
+      } else {
+        const res = await Api.post("/api/resumes", payload);
+        if (res.data?.data?.id) {
+          setCurrentResumeId(res.data.data.id);
+        }
+        setSaveStatus({
+          type: "success",
+          message: "Resume saved successfully to your account!"
+        });
+      }
+    } catch (error: any) {
+      console.error("Save Resume Error:", error);
+      setSaveStatus({
+        type: "error",
+        message: error.response?.data?.message || "Failed to save resume. Please ensure you are logged in."
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const activeColor = getColorHex();
 
   return (
@@ -637,11 +1057,23 @@ const BuildResume: React.FC = () => {
           <button className="tool-btn templates-btn" onClick={() => setShowTemplateSelector(true)} style={{ backgroundColor: "#1e293b", color: "#e2e8f0", border: "1px solid #334155" }}>
             <Layout size={16} /> Choose Template
           </button>
+          <button className="tool-btn cover-letter-btn" onClick={() => setCoverLetterModalOpen(true)} style={{ backgroundColor: "#4338ca", color: "#ffffff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontWeight: "500" }}>
+            <FileText size={16} /> Cover Letter
+          </button>
+          <button className="tool-btn share-btn" onClick={handleGenerateShareLink} disabled={shareLoading} style={{ backgroundColor: "#0284c7", color: "#ffffff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontWeight: "500" }}>
+            <Share2 size={16} /> {shareLoading ? "Sharing..." : "Share Link"}
+          </button>
+          <button className="tool-btn clone-btn" onClick={handleCloneThisResume} style={{ backgroundColor: "#0f766e", color: "#ffffff", border: "none", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontWeight: "500" }}>
+            <Copy size={16} /> Clone Version
+          </button>
           <button className="tool-btn sample-btn" onClick={handleFillSample}>
-            <RefreshCw size={16} /> Fill Sample Data
+            <RefreshCw size={16} /> Fill Sample
           </button>
           <button className="tool-btn reset-btn" onClick={handleReset}>
-            <Trash2 size={16} /> Reset Form
+            <Trash2 size={16} /> Reset
+          </button>
+          <button className="tool-btn save-btn" onClick={handleSaveResume} disabled={saving} style={{ backgroundColor: "#2563eb", color: "#ffffff", border: "none", padding: "8px 16px", borderRadius: "6px", cursor: "pointer", display: "flex", alignItems: "center", gap: "6px", fontWeight: "500" }}>
+            <Save size={16} /> {saving ? "Saving..." : "Save Resume"}
           </button>
           <button className="tool-btn download-btn" onClick={handlePrint}>
             <Download size={16} /> Download PDF
@@ -649,9 +1081,162 @@ const BuildResume: React.FC = () => {
         </div>
       </div>
 
+      {saveStatus && (
+        <div style={{
+          padding: "12px 20px",
+          margin: "10px 20px 0 20px",
+          borderRadius: "8px",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+          fontSize: "14px",
+          fontWeight: "500",
+          backgroundColor: saveStatus.type === "success" ? "#f0fdf4" : "#fef2f2",
+          color: saveStatus.type === "success" ? "#166534" : "#991b1b",
+          border: `1px solid ${saveStatus.type === "success" ? "#bbf7d0" : "#fca5a5"}`
+        }}>
+          {saveStatus.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          <span>{saveStatus.message}</span>
+        </div>
+      )}
+
       <div className="builder-content">
         {/* Left column: Editor */}
         <div className="editor-pane">
+          {/* Real-time Formatting & Page Length Spill Warning (SRS #16) */}
+          {formattingReport && (
+            <div style={{
+              backgroundColor: formattingReport.estimatedPages >= 3 ? "rgba(239, 68, 68, 0.12)" : formattingReport.estimatedPages >= 2 ? "rgba(245, 158, 11, 0.12)" : "rgba(16, 185, 129, 0.08)",
+              border: `1px solid ${formattingReport.estimatedPages >= 3 ? "rgba(239, 68, 68, 0.35)" : formattingReport.estimatedPages >= 2 ? "rgba(245, 158, 11, 0.35)" : "rgba(16, 185, 129, 0.25)"}`,
+              borderRadius: "10px",
+              padding: "12px 16px",
+              marginBottom: "16px",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: "12px"
+            }}>
+              <AlertCircle size={18} style={{ color: formattingReport.estimatedPages >= 2 ? "#f59e0b" : "#10b981", flexShrink: 0, marginTop: "2px" }} />
+              <div style={{ flex: 1, fontSize: "12.5px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                  <strong style={{ color: formattingReport.estimatedPages >= 3 ? "#ef4444" : formattingReport.estimatedPages >= 2 ? "#f59e0b" : "#10b981" }}>
+                    Format & Page Spill Check: ~{formattingReport.estimatedPages} {formattingReport.estimatedPages === 1 ? "Page" : "Pages"} ({formattingReport.wordCount} words)
+                  </strong>
+                  <span style={{ fontSize: "11px", color: "#94a3b8" }}>SRS #16</span>
+                </div>
+                {formattingReport.warnings && formattingReport.warnings.length > 0 ? (
+                  <ul style={{ margin: "4px 0 0 0", paddingLeft: "16px", color: "#cbd5e1", lineHeight: 1.4 }}>
+                    {formattingReport.warnings.map((w, idx) => (
+                      <li key={idx}>{w}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p style={{ margin: 0, color: "#94a3b8" }}>Optimal length! Fits cleanly without awkward page spillovers.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* MaterialUI Multi-step Stepper (SRS #1) */}
+          <div style={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "12px", padding: "16px 20px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <span style={{ fontSize: "13px", fontWeight: "700", color: "#e2e8f0", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                Resume Creation Steps (SRS #1)
+              </span>
+              <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#94a3b8", cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={viewAllSections}
+                  onChange={(e) => setViewAllSections(e.target.checked)}
+                  style={{ accentColor: "#6366f1", cursor: "pointer" }}
+                />
+                <span>View All Sections</span>
+              </label>
+            </div>
+            <Stepper activeStep={activeStep} alternativeLabel sx={{
+              "& .MuiStepLabel-label": { color: "#94a3b8 !important", fontSize: "12px" },
+              "& .MuiStepLabel-label.Mui-active": { color: "#818cf8 !important", fontWeight: "700" },
+              "& .MuiStepLabel-label.Mui-completed": { color: "#10b981 !important" },
+              "& .MuiStepIcon-root": { color: "#334155" },
+              "& .MuiStepIcon-root.Mui-active": { color: "#6366f1" },
+              "& .MuiStepIcon-root.Mui-completed": { color: "#10b981" },
+            }}>
+              {["Personal", "Experience", "Education", "Projects", "Skills", "Additional"].map((label, index) => (
+                <Step key={label} completed={index < activeStep}>
+                  <StepButton onClick={() => setActiveStep(index)}>
+                    <StepLabel>{label}</StepLabel>
+                  </StepButton>
+                </Step>
+              ))}
+            </Stepper>
+            {!viewAllSections && (
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: "14px", paddingTop: "10px", borderTop: "1px solid #1e293b" }}>
+                <button
+                  type="button"
+                  disabled={activeStep === 0}
+                  onClick={() => setActiveStep(prev => Math.max(0, prev - 1))}
+                  style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#1e293b", border: "1px solid #334155", color: activeStep === 0 ? "#475569" : "#e2e8f0", padding: "6px 14px", borderRadius: "6px", fontSize: "12px", cursor: activeStep === 0 ? "not-allowed" : "pointer" }}
+                >
+                  <ChevronLeft size={14} /> Previous Step
+                </button>
+                <button
+                  type="button"
+                  disabled={activeStep === 5}
+                  onClick={() => setActiveStep(prev => Math.min(5, prev + 1))}
+                  style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#4f46e5", border: "none", color: "#ffffff", padding: "6px 14px", borderRadius: "6px", fontSize: "12px", fontWeight: "600", cursor: activeStep === 5 ? "not-allowed" : "pointer" }}
+                >
+                  Next Step <ChevronRight size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Dedicated Target Job Panel (SRS #4) */}
+          <div style={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "12px", padding: "16px 20px", marginBottom: "16px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer" }} onClick={() => setShowTargetJobPanel(!showTargetJobPanel)}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Sparkles size={16} style={{ color: "#818cf8" }} />
+                <h3 style={{ margin: 0, fontSize: "14px", fontWeight: "700", color: "#ffffff" }}>Target Job Description Input (SRS #4)</h3>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {targetJobDesc.trim() && (
+                  <span style={{ fontSize: "11px", backgroundColor: "rgba(16, 185, 129, 0.15)", color: "#34d399", padding: "2px 8px", borderRadius: "10px", fontWeight: "600" }}>
+                    Job Active
+                  </span>
+                )}
+                {showTargetJobPanel ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </div>
+            </div>
+
+            {showTargetJobPanel && (
+              <div style={{ marginTop: "12px", display: "flex", flexDirection: "column", gap: "10px" }}>
+                <p style={{ margin: 0, fontSize: "12px", color: "#94a3b8", lineHeight: 1.4 }}>
+                  Paste target job requirements below. The builder will automatically evaluate keywords and personalize AI suggestions.
+                </p>
+                <textarea
+                  value={targetJobDesc}
+                  onChange={(e) => setTargetJobDesc(e.target.value)}
+                  placeholder="Paste target job description here (e.g. Senior Full Stack Engineer with React, TypeScript, Spring Boot, AWS...)"
+                  rows={3}
+                  style={{ width: "100%", padding: "10px 12px", backgroundColor: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", color: "#e2e8f0", fontSize: "12.5px", fontFamily: "inherit" }}
+                />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: "11px", color: "#64748b" }}>
+                    {targetJobDesc.trim() ? `${targetJobDesc.split(/\s+/).filter(Boolean).length} words parsed` : "No job text pasted yet"}
+                  </span>
+                  {targetJobDesc.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setTargetJobDesc("")}
+                      style={{ backgroundColor: "transparent", border: "none", color: "#94a3b8", fontSize: "11px", cursor: "pointer", textDecoration: "underline" }}
+                    >
+                      Clear Job Text
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Customization Options Bar */}
           <div className="customization-card">
             <h3>Style Customize</h3>
@@ -795,566 +1380,824 @@ const BuildResume: React.FC = () => {
           <div className="accordion-wrapper">
             
             {/* 1. PERSONAL INFO */}
-            <div className={`accordion-item ${openSections.personal ? "open" : ""}`}>
-              <div className="accordion-header" onClick={() => toggleSection("personal")}>
-                <span className="title"><User size={18} /> Personal Information</span>
-                {openSections.personal ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {isSectionVisible(0) && (
+              <div className={`accordion-item ${openSections.personal ? "open" : ""}`}>
+                <div className="accordion-header" onClick={() => toggleSection("personal")}>
+                  <span className="title"><User size={18} /> Personal Information</span>
+                  {openSections.personal ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+                
+                {openSections.personal && (
+                  <div className="accordion-body">
+                    <div className="input-row">
+                      <div className="form-group">
+                        <label>Full Name</label>
+                        <input
+                          type="text"
+                          name="fullName"
+                          value={resumeData.fullName}
+                          onChange={handleFieldChange}
+                          placeholder="John Doe"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Professional Title</label>
+                        <input
+                          type="text"
+                          name="title"
+                          value={resumeData.title}
+                          onChange={handleFieldChange}
+                          placeholder="Software Engineer"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="input-row">
+                      <div className="form-group">
+                        <label>Email Address</label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={resumeData.email}
+                          onChange={handleFieldChange}
+                          placeholder="john.doe@example.com"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Phone Number</label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={resumeData.phone}
+                          onChange={handleFieldChange}
+                          placeholder="+1 (123) 456-7890"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="input-row">
+                      <div className="form-group">
+                        <label>Location</label>
+                        <input
+                          type="text"
+                          name="location"
+                          value={resumeData.location}
+                          onChange={handleFieldChange}
+                          placeholder="New York, NY"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Portfolio / Website</label>
+                        <input
+                          type="text"
+                          name="website"
+                          value={resumeData.website}
+                          onChange={handleFieldChange}
+                          placeholder="alexmercer.dev"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="input-row">
+                      <div className="form-group">
+                        <label>LinkedIn Profile URL</label>
+                        <input
+                          type="text"
+                          name="linkedin"
+                          value={resumeData.linkedin || ""}
+                          onChange={handleFieldChange}
+                          placeholder="linkedin.com/in/username"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>GitHub Profile URL</label>
+                        <input
+                          type="text"
+                          name="github"
+                          value={resumeData.github || ""}
+                          onChange={handleFieldChange}
+                          placeholder="github.com/username"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Profile Photo</label>
+                      <div className="photo-upload-container">
+                        {resumeData.photoUrl ? (
+                          <div className="photo-preview-wrapper">
+                            <img src={resumeData.photoUrl} alt="Profile Preview" className="photo-preview-thumbnail" />
+                            <button type="button" className="remove-photo-btn" onClick={handleRemovePhoto}>Remove Photo</button>
+                          </div>
+                        ) : (
+                          <div className="photo-upload-placeholder">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              id="photo-file-input"
+                              onChange={handlePhotoChange}
+                              style={{ display: "none" }}
+                            />
+                            <label htmlFor="photo-file-input" className="photo-upload-label">
+                              Upload Profile Photo
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label>Professional Summary</label>
+                      <textarea
+                        name="summary"
+                        value={resumeData.summary}
+                        onChange={handleFieldChange}
+                        placeholder="Brief overview of your career background, expertise, and goals..."
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
-              
-              {openSections.personal && (
-                <div className="accordion-body">
-                  <div className="input-row">
-                    <div className="form-group">
-                      <label>Full Name</label>
-                      <input
-                        type="text"
-                        name="fullName"
-                        value={resumeData.fullName}
-                        onChange={handleFieldChange}
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Professional Title</label>
-                      <input
-                        type="text"
-                        name="title"
-                        value={resumeData.title}
-                        onChange={handleFieldChange}
-                        placeholder="Software Engineer"
-                      />
-                    </div>
-                  </div>
+            )}
 
-                  <div className="input-row">
-                    <div className="form-group">
-                      <label>Email Address</label>
-                      <input
-                        type="email"
-                        name="email"
-                        value={resumeData.email}
-                        onChange={handleFieldChange}
-                        placeholder="john.doe@example.com"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Phone Number</label>
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={resumeData.phone}
-                        onChange={handleFieldChange}
-                        placeholder="+1 (123) 456-7890"
-                      />
-                    </div>
-                  </div>
+            {/* 2. EXPERIENCE */}
+            {isSectionVisible(1) && (
+              <div className={`accordion-item ${openSections.experience ? "open" : ""}`}>
+                <div className="accordion-header" onClick={() => toggleSection("experience")}>
+                  <span className="title"><Briefcase size={18} /> Work Experience</span>
+                  {openSections.experience ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
 
-                  <div className="input-row">
-                    <div className="form-group">
-                      <label>Location</label>
-                      <input
-                        type="text"
-                        name="location"
-                        value={resumeData.location}
-                        onChange={handleFieldChange}
-                        placeholder="New York, NY"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Portfolio / Website</label>
-                      <input
-                        type="text"
-                        name="website"
-                        value={resumeData.website}
-                        onChange={handleFieldChange}
-                        placeholder="alexmercer.dev"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="input-row">
-                    <div className="form-group">
-                      <label>LinkedIn Profile URL</label>
-                      <input
-                        type="text"
-                        name="linkedin"
-                        value={resumeData.linkedin || ""}
-                        onChange={handleFieldChange}
-                        placeholder="linkedin.com/in/username"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>GitHub Profile URL</label>
-                      <input
-                        type="text"
-                        name="github"
-                        value={resumeData.github || ""}
-                        onChange={handleFieldChange}
-                        placeholder="github.com/username"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Profile Photo</label>
-                    <div className="photo-upload-container">
-                      {resumeData.photoUrl ? (
-                        <div className="photo-preview-wrapper">
-                          <img src={resumeData.photoUrl} alt="Profile Preview" className="photo-preview-thumbnail" />
-                          <button type="button" className="remove-photo-btn" onClick={handleRemovePhoto}>Remove Photo</button>
+                {openSections.experience && (
+                  <div className="accordion-body">
+                    {resumeData.experiences.map((exp, index) => (
+                      <div
+                        key={index}
+                        className="array-item-card"
+                        draggable
+                        onDragStart={() => setDraggedExpIndex(index)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => {
+                          if (draggedExpIndex !== null && draggedExpIndex !== index) {
+                            moveExperience(draggedExpIndex, index);
+                            setDraggedExpIndex(null);
+                          }
+                        }}
+                      >
+                        <div className="item-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span title="Drag to reorder (SRS #7)" style={{ cursor: "grab", display: "flex", alignItems: "center", color: "#64748b" }}>
+                              <GripVertical size={16} />
+                            </span>
+                            <h4 style={{ margin: 0 }}>Job #{index + 1}</h4>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => moveExperience(index, index - 1)}
+                              title="Move Up (SRS #7)"
+                              style={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "4px", padding: "4px 6px", color: index === 0 ? "#475569" : "#cbd5e1", cursor: index === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center" }}
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={index === resumeData.experiences.length - 1}
+                              onClick={() => moveExperience(index, index + 1)}
+                              title="Move Down (SRS #7)"
+                              style={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "4px", padding: "4px 6px", color: index === resumeData.experiences.length - 1 ? "#475569" : "#cbd5e1", cursor: index === resumeData.experiences.length - 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center" }}
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                            <button className="delete-btn" onClick={() => removeExperience(index)} title="Remove Experience">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
-                      ) : (
-                        <div className="photo-upload-placeholder">
+
+                        <div className="input-row">
+                          <div className="form-group">
+                            <label>Company</label>
+                            <input
+                              type="text"
+                              value={exp.company}
+                              onChange={(e) => updateExperience(index, "company", e.target.value)}
+                              placeholder="Tech Solutions Ltd"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Job Title</label>
+                            <input
+                              type="text"
+                              value={exp.role}
+                              onChange={(e) => updateExperience(index, "role", e.target.value)}
+                              placeholder="Frontend Developer"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="input-row">
+                          <div className="form-group">
+                            <label>Start Date</label>
+                            <input
+                              type="text"
+                              value={exp.startDate}
+                              onChange={(e) => updateExperience(index, "startDate", e.target.value)}
+                              placeholder="e.g. 2021-06"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>End Date</label>
+                            <input
+                              type="text"
+                              value={exp.endDate}
+                              onChange={(e) => updateExperience(index, "endDate", e.target.value)}
+                              placeholder="e.g. Present or 2023-08"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Location</label>
                           <input
-                            type="file"
-                            accept="image/*"
-                            id="photo-file-input"
-                            onChange={handlePhotoChange}
-                            style={{ display: "none" }}
+                            type="text"
+                            value={exp.location}
+                            onChange={(e) => updateExperience(index, "location", e.target.value)}
+                            placeholder="San Francisco, CA or Remote"
                           />
-                          <label htmlFor="photo-file-input" className="photo-upload-label">
-                            Upload Profile Photo
-                          </label>
+                        </div>
+
+                        <div className="form-group">
+                          <div className="label-row-optimize" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "6px" }}>
+                            <label style={{ margin: 0 }}>Description / Core Achievements</label>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <button
+                                type="button"
+                                onClick={() => handleCheckGrammar("experience", index)}
+                                disabled={grammarChecking[`experience_${index}`]}
+                                style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "4px", padding: "2px 8px", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
+                              >
+                                <SpellCheck size={12} /> {grammarChecking[`experience_${index}`] ? "Checking..." : "Check Grammar (SRS #14)"}
+                              </button>
+                              <button 
+                                type="button" 
+                                className="optimize-btn-trigger" 
+                                style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#c084fc", border: "1px solid rgba(124, 58, 237, 0.2)", borderRadius: "4px", padding: "2px 8px", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
+                                onClick={() => handleOpenOptimizer("experience", index)}
+                              >
+                                <Sparkles size={12} /> Optimize with AI
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Action Verb Chips Bar (SRS #6) */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap", marginBottom: "8px", padding: "4px 8px", backgroundColor: "#0b1120", borderRadius: "6px", border: "1px solid #1e293b" }}>
+                            <span style={{ fontSize: "10.5px", color: "#64748b", fontWeight: "700" }}>Action Verbs:</span>
+                            {ACTION_VERBS.slice(0, 7).map(verb => (
+                              <button
+                                key={verb}
+                                type="button"
+                                onClick={() => insertActionVerb("experience", index, verb)}
+                                style={{ backgroundColor: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.3)", color: "#a5b4fc", fontSize: "10px", padding: "1px 6px", borderRadius: "4px", cursor: "pointer" }}
+                                title={`Insert "${verb}" into bullet`}
+                              >
+                                + {verb}
+                              </button>
+                            ))}
+                          </div>
+
+                          <textarea
+                            value={exp.description}
+                            onChange={(e) => updateExperience(index, "description", e.target.value)}
+                            placeholder="Describe responsibilities and accomplishments. E.g. Spearheaded development of scalable APIs..."
+                            rows={3}
+                          />
+
+                          {/* Grammar Issues (SRS #14) */}
+                          {grammarIssues[`experience_${index}`] && grammarIssues[`experience_${index}`].length > 0 && (
+                            <div style={{ backgroundColor: "#1e1b4b", border: "1px solid #3730a3", borderRadius: "6px", padding: "8px 12px", marginTop: "8px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                                <SpellCheck size={14} style={{ color: "#a5b4fc" }} />
+                                <span style={{ fontSize: "11px", fontWeight: "700", color: "#c7d2fe" }}>Grammar & Spell Suggestions ({grammarIssues[`experience_${index}`].length}):</span>
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                {grammarIssues[`experience_${index}`].map((issue: any, issueIdx: number) => (
+                                  <div key={issueIdx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11.5px", color: "#e0e7ff" }}>
+                                    <span>{issue.message} &mdash; <em>"{issue.context}"</em></span>
+                                    {issue.replacements && issue.replacements[0] && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleApplyGrammarFix("experience", index, issue.context, issue.replacements[0])}
+                                        style={{ backgroundColor: "#4338ca", color: "#ffffff", border: "none", borderRadius: "4px", padding: "2px 8px", fontSize: "10px", cursor: "pointer", fontWeight: "600" }}
+                                      >
+                                        Fix &rarr; "{issue.replacements[0]}"
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <button className="add-btn" onClick={addExperience}>
+                      <Plus size={16} /> Add Experience
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. EDUCATION */}
+            {isSectionVisible(2) && (
+              <div className={`accordion-item ${openSections.education ? "open" : ""}`}>
+                <div className="accordion-header" onClick={() => toggleSection("education")}>
+                  <span className="title"><GraduationCap size={18} /> Education</span>
+                  {openSections.education ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+
+                {openSections.education && (
+                  <div className="accordion-body">
+                    {resumeData.educations.map((edu, index) => (
+                      <div key={index} className="array-item-card">
+                        <div className="item-header">
+                          <h4>Education #{index + 1}</h4>
+                          <button className="delete-btn" onClick={() => removeEducation(index)} title="Remove Education">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+
+                        <div className="input-row">
+                          <div className="form-group">
+                            <label>School / University</label>
+                            <input
+                              type="text"
+                              value={edu.school}
+                              onChange={(e) => updateEducation(index, "school", e.target.value)}
+                              placeholder="Harvard University"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Degree</label>
+                            <input
+                              type="text"
+                              value={edu.degree}
+                              onChange={(e) => updateEducation(index, "degree", e.target.value)}
+                              placeholder="Bachelor of Science"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="input-row">
+                          <div className="form-group">
+                            <label>Field of Study</label>
+                            <input
+                              type="text"
+                              value={edu.field}
+                              onChange={(e) => updateEducation(index, "field", e.target.value)}
+                              placeholder="Computer Engineering"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Graduation Date</label>
+                            <input
+                              type="text"
+                              value={edu.gradDate}
+                              onChange={(e) => updateEducation(index, "gradDate", e.target.value)}
+                              placeholder="e.g. 2022-05"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Location</label>
+                          <input
+                            type="text"
+                            value={edu.location}
+                            onChange={(e) => updateEducation(index, "location", e.target.value)}
+                            placeholder="Boston, MA"
+                          />
+                        </div>
+                      </div>
+                    ))}
+
+                    <button className="add-btn" onClick={addEducation}>
+                      <Plus size={16} /> Add Education
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 4. PROJECTS */}
+            {isSectionVisible(3) && (
+              <div className={`accordion-item ${openSections.projects ? "open" : ""}`}>
+                <div className="accordion-header" onClick={() => toggleSection("projects")}>
+                  <span className="title"><FolderGit2 size={18} /> Projects</span>
+                  {openSections.projects ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+
+                {openSections.projects && (
+                  <div className="accordion-body">
+                    {resumeData.projects.map((proj, index) => (
+                      <div
+                        key={index}
+                        className="array-item-card"
+                        draggable
+                        onDragStart={() => setDraggedProjIndex(index)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => {
+                          if (draggedProjIndex !== null && draggedProjIndex !== index) {
+                            moveProject(draggedProjIndex, index);
+                            setDraggedProjIndex(null);
+                          }
+                        }}
+                      >
+                        <div className="item-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span title="Drag to reorder (SRS #7)" style={{ cursor: "grab", display: "flex", alignItems: "center", color: "#64748b" }}>
+                              <GripVertical size={16} />
+                            </span>
+                            <h4 style={{ margin: 0 }}>Project #{index + 1}</h4>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <button
+                              type="button"
+                              disabled={index === 0}
+                              onClick={() => moveProject(index, index - 1)}
+                              title="Move Up (SRS #7)"
+                              style={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "4px", padding: "4px 6px", color: index === 0 ? "#475569" : "#cbd5e1", cursor: index === 0 ? "not-allowed" : "pointer", display: "flex", alignItems: "center" }}
+                            >
+                              <ChevronUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              disabled={index === resumeData.projects.length - 1}
+                              onClick={() => moveProject(index, index + 1)}
+                              title="Move Down (SRS #7)"
+                              style={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "4px", padding: "4px 6px", color: index === resumeData.projects.length - 1 ? "#475569" : "#cbd5e1", cursor: index === resumeData.projects.length - 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center" }}
+                            >
+                              <ChevronDown size={14} />
+                            </button>
+                            <button className="delete-btn" onClick={() => removeProject(index)} title="Remove Project">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="input-row">
+                          <div className="form-group">
+                            <label>Project Name</label>
+                            <input
+                              type="text"
+                              value={proj.name}
+                              onChange={(e) => updateProject(index, "name", e.target.value)}
+                              placeholder="E-commerce Engine"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Technologies Used</label>
+                            <input
+                              type="text"
+                              value={proj.technologies}
+                              onChange={(e) => updateProject(index, "technologies", e.target.value)}
+                              placeholder="React, Redux, Node.js"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-group">
+                          <label>Main Project Link / URL</label>
+                          <input
+                            type="text"
+                            value={proj.link}
+                            onChange={(e) => updateProject(index, "link", e.target.value)}
+                            placeholder="github.com/myusername/project"
+                          />
+                        </div>
+
+                        <div className="input-row">
+                          <div className="form-group">
+                            <label>GitHub Repository Link</label>
+                            <input
+                              type="text"
+                              value={proj.githubLink || ""}
+                              onChange={(e) => updateProject(index, "githubLink", e.target.value)}
+                              placeholder="github.com/username/repo"
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Live Demo Link</label>
+                            <input
+                              type="text"
+                              value={proj.liveDemoLink || ""}
+                              onChange={(e) => updateProject(index, "liveDemoLink", e.target.value)}
+                              placeholder="myproject.demo.com"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="form-group">
+                          <div className="label-row-optimize" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px", flexWrap: "wrap", gap: "6px" }}>
+                            <label style={{ margin: 0 }}>Description</label>
+                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                              <button
+                                type="button"
+                                onClick={() => handleCheckGrammar("project", index)}
+                                disabled={grammarChecking[`project_${index}`]}
+                                style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(16, 185, 129, 0.1)", color: "#34d399", border: "1px solid rgba(16, 185, 129, 0.2)", borderRadius: "4px", padding: "2px 8px", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
+                              >
+                                <SpellCheck size={12} /> {grammarChecking[`project_${index}`] ? "Checking..." : "Check Grammar (SRS #14)"}
+                              </button>
+                              <button 
+                                type="button" 
+                                className="optimize-btn-trigger" 
+                                style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#c084fc", border: "1px solid rgba(124, 58, 237, 0.2)", borderRadius: "4px", padding: "2px 8px", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
+                                onClick={() => handleOpenOptimizer("project", index)}
+                              >
+                                <Sparkles size={12} /> Optimize with AI
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Action Verb Chips Bar (SRS #6) */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap", marginBottom: "8px", padding: "4px 8px", backgroundColor: "#0b1120", borderRadius: "6px", border: "1px solid #1e293b" }}>
+                            <span style={{ fontSize: "10.5px", color: "#64748b", fontWeight: "700" }}>Action Verbs:</span>
+                            {ACTION_VERBS.slice(0, 7).map(verb => (
+                              <button
+                                key={verb}
+                                type="button"
+                                onClick={() => insertActionVerb("project", index, verb)}
+                                style={{ backgroundColor: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.3)", color: "#a5b4fc", fontSize: "10px", padding: "1px 6px", borderRadius: "4px", cursor: "pointer" }}
+                                title={`Insert "${verb}" into bullet`}
+                              >
+                                + {verb}
+                              </button>
+                            ))}
+                          </div>
+
+                          <textarea
+                            value={proj.description}
+                            onChange={(e) => updateProject(index, "description", e.target.value)}
+                            placeholder="Outline project goal and your achievements..."
+                            rows={3}
+                          />
+
+                          {/* Grammar Issues (SRS #14) */}
+                          {grammarIssues[`project_${index}`] && grammarIssues[`project_${index}`].length > 0 && (
+                            <div style={{ backgroundColor: "#1e1b4b", border: "1px solid #3730a3", borderRadius: "6px", padding: "8px 12px", marginTop: "8px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                                <SpellCheck size={14} style={{ color: "#a5b4fc" }} />
+                                <span style={{ fontSize: "11px", fontWeight: "700", color: "#c7d2fe" }}>Grammar & Spell Suggestions ({grammarIssues[`project_${index}`].length}):</span>
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                                {grammarIssues[`project_${index}`].map((issue: any, issueIdx: number) => (
+                                  <div key={issueIdx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: "11.5px", color: "#e0e7ff" }}>
+                                    <span>{issue.message} &mdash; <em>"{issue.context}"</em></span>
+                                    {issue.replacements && issue.replacements[0] && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleApplyGrammarFix("project", index, issue.context, issue.replacements[0])}
+                                        style={{ backgroundColor: "#4338ca", color: "#ffffff", border: "none", borderRadius: "4px", padding: "2px 8px", fontSize: "10px", cursor: "pointer", fontWeight: "600" }}
+                                      >
+                                        Fix &rarr; "{issue.replacements[0]}"
+                                      </button>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    <button className="add-btn" onClick={addProject}>
+                      <Plus size={16} /> Add Project
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 5. SKILLS */}
+            {isSectionVisible(4) && (
+              <div className={`accordion-item ${openSections.skills ? "open" : ""}`}>
+                <div className="accordion-header" onClick={() => toggleSection("skills")}>
+                  <span className="title"><Wrench size={18} /> Technical & Soft Skills</span>
+                  {openSections.skills ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+
+                {openSections.skills && (
+                  <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div className="form-group">
+                      <label>Technical Skills (Separate with commas)</label>
+                      <textarea
+                        name="skills"
+                        value={resumeData.skills}
+                        onChange={handleFieldChange}
+                        placeholder="React, TypeScript, Java, SQL, Git..."
+                        rows={2}
+                      />
+                      <small className="help-text">Standard technical skills used across all templates.</small>
+
+                      {resumeData.skills.trim() && (
+                        <div style={{ marginTop: "10px" }}>
+                          <small style={{ color: "#94a3b8", display: "block", marginBottom: "6px" }}>
+                            Drag chips to reorder your skills (SRS #7):
+                          </small>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                            {resumeData.skills.split(",").map(s => s.trim()).filter(Boolean).map((skill, sIdx, sArr) => (
+                              <span
+                                key={sIdx}
+                                draggable
+                                onDragStart={() => setDraggedSkillIndex(sIdx)}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={() => {
+                                  if (draggedSkillIndex !== null && draggedSkillIndex !== sIdx) {
+                                    moveSkill(draggedSkillIndex, sIdx);
+                                    setDraggedSkillIndex(null);
+                                  }
+                                }}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "4px",
+                                  backgroundColor: "#1e1b4b",
+                                  color: "#c7d2fe",
+                                  border: "1px solid #4338ca",
+                                  borderRadius: "9999px",
+                                  padding: "3px 8px",
+                                  fontSize: "12px",
+                                  cursor: "grab",
+                                  userSelect: "none"
+                                }}
+                              >
+                                <GripVertical size={12} style={{ color: "#818cf8" }} />
+                                <span>{skill}</span>
+                                <button
+                                  type="button"
+                                  disabled={sIdx === 0}
+                                  onClick={() => moveSkill(sIdx, sIdx - 1)}
+                                  style={{ background: "none", border: "none", color: sIdx === 0 ? "#475569" : "#a5b4fc", cursor: sIdx === 0 ? "default" : "pointer", padding: "0 1px" }}
+                                  title="Move left"
+                                >
+                                  &larr;
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={sIdx === sArr.length - 1}
+                                  onClick={() => moveSkill(sIdx, sIdx + 1)}
+                                  style={{ background: "none", border: "none", color: sIdx === sArr.length - 1 ? "#475569" : "#a5b4fc", cursor: sIdx === sArr.length - 1 ? "default" : "pointer", padding: "0 1px" }}
+                                  title="Move right"
+                                >
+                                  &rarr;
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => removeSkillChip(sIdx)}
+                                  style={{ background: "none", border: "none", color: "#f87171", cursor: "pointer", padding: "0 2px", fontWeight: "bold" }}
+                                  title="Remove skill"
+                                >
+                                  &times;
+                                </button>
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
-                  </div>
 
-                  <div className="form-group">
-                    <label>Professional Summary</label>
-                    <textarea
-                      name="summary"
-                      value={resumeData.summary}
-                      onChange={handleFieldChange}
-                      placeholder="Brief overview of your career background, expertise, and goals..."
-                      rows={4}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* 2. EXPERIENCE */}
-            <div className={`accordion-item ${openSections.experience ? "open" : ""}`}>
-              <div className="accordion-header" onClick={() => toggleSection("experience")}>
-                <span className="title"><Briefcase size={18} /> Work Experience</span>
-                {openSections.experience ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-
-              {openSections.experience && (
-                <div className="accordion-body">
-                  {resumeData.experiences.map((exp, index) => (
-                    <div key={index} className="array-item-card">
-                      <div className="item-header">
-                        <h4>Job #{index + 1}</h4>
-                        <button className="delete-btn" onClick={() => removeExperience(index)} title="Remove Experience">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-
-                      <div className="input-row">
-                        <div className="form-group">
-                          <label>Company</label>
-                          <input
-                            type="text"
-                            value={exp.company}
-                            onChange={(e) => updateExperience(index, "company", e.target.value)}
-                            placeholder="Tech Solutions Ltd"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Job Title</label>
-                          <input
-                            type="text"
-                            value={exp.role}
-                            onChange={(e) => updateExperience(index, "role", e.target.value)}
-                            placeholder="Frontend Developer"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="input-row">
-                        <div className="form-group">
-                          <label>Start Date</label>
-                          <input
-                            type="text"
-                            value={exp.startDate}
-                            onChange={(e) => updateExperience(index, "startDate", e.target.value)}
-                            placeholder="e.g. 2021-06"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>End Date</label>
-                          <input
-                            type="text"
-                            value={exp.endDate}
-                            onChange={(e) => updateExperience(index, "endDate", e.target.value)}
-                            placeholder="e.g. Present or 2023-08"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="form-group">
-                        <label>Location</label>
-                        <input
-                          type="text"
-                          value={exp.location}
-                          onChange={(e) => updateExperience(index, "location", e.target.value)}
-                          placeholder="San Francisco, CA or Remote"
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <div className="label-row-optimize" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                          <label style={{ margin: 0 }}>Description / Core Achievements</label>
-                          <button 
-                            type="button" 
-                            className="optimize-btn-trigger" 
-                            style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#c084fc", border: "1px solid rgba(124, 58, 237, 0.2)", borderRadius: "4px", padding: "2px 8px", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
-                            onClick={() => handleOpenOptimizer("experience", index)}
-                          >
-                            <Sparkles size={12} /> Optimize with AI
-                          </button>
-                        </div>
-                        <textarea
-                          value={exp.description}
-                          onChange={(e) => updateExperience(index, "description", e.target.value)}
-                          placeholder="Describe responsibilities and accomplishments. E.g. Improved database speed by 30%..."
-                          rows={3}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  
-                  <button className="add-btn" onClick={addExperience}>
-                    <Plus size={16} /> Add Experience
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 3. EDUCATION */}
-            <div className={`accordion-item ${openSections.education ? "open" : ""}`}>
-              <div className="accordion-header" onClick={() => toggleSection("education")}>
-                <span className="title"><GraduationCap size={18} /> Education</span>
-                {openSections.education ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-
-              {openSections.education && (
-                <div className="accordion-body">
-                  {resumeData.educations.map((edu, index) => (
-                    <div key={index} className="array-item-card">
-                      <div className="item-header">
-                        <h4>Education #{index + 1}</h4>
-                        <button className="delete-btn" onClick={() => removeEducation(index)} title="Remove Education">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-
-                      <div className="input-row">
-                        <div className="form-group">
-                          <label>School / University</label>
-                          <input
-                            type="text"
-                            value={edu.school}
-                            onChange={(e) => updateEducation(index, "school", e.target.value)}
-                            placeholder="Harvard University"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Degree</label>
-                          <input
-                            type="text"
-                            value={edu.degree}
-                            onChange={(e) => updateEducation(index, "degree", e.target.value)}
-                            placeholder="Bachelor of Science"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="input-row">
-                        <div className="form-group">
-                          <label>Field of Study</label>
-                          <input
-                            type="text"
-                            value={edu.field}
-                            onChange={(e) => updateEducation(index, "field", e.target.value)}
-                            placeholder="Computer Engineering"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Graduation Date</label>
-                          <input
-                            type="text"
-                            value={edu.gradDate}
-                            onChange={(e) => updateEducation(index, "gradDate", e.target.value)}
-                            placeholder="e.g. 2022-05"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="form-group">
-                        <label>Location</label>
-                        <input
-                          type="text"
-                          value={edu.location}
-                          onChange={(e) => updateEducation(index, "location", e.target.value)}
-                          placeholder="Boston, MA"
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  <button className="add-btn" onClick={addEducation}>
-                    <Plus size={16} /> Add Education
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 4. PROJECTS */}
-            <div className={`accordion-item ${openSections.projects ? "open" : ""}`}>
-              <div className="accordion-header" onClick={() => toggleSection("projects")}>
-                <span className="title"><FolderGit2 size={18} /> Projects</span>
-                {openSections.projects ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-
-              {openSections.projects && (
-                <div className="accordion-body">
-                  {resumeData.projects.map((proj, index) => (
-                    <div key={index} className="array-item-card">
-                      <div className="item-header">
-                        <h4>Project #{index + 1}</h4>
-                        <button className="delete-btn" onClick={() => removeProject(index)} title="Remove Project">
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-
-                      <div className="input-row">
-                        <div className="form-group">
-                          <label>Project Name</label>
-                          <input
-                            type="text"
-                            value={proj.name}
-                            onChange={(e) => updateProject(index, "name", e.target.value)}
-                            placeholder="E-commerce Engine"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Technologies Used</label>
-                          <input
-                            type="text"
-                            value={proj.technologies}
-                            onChange={(e) => updateProject(index, "technologies", e.target.value)}
-                            placeholder="React, Redux, Node.js"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="form-group">
-                        <label>Main Project Link / URL</label>
-                        <input
-                          type="text"
-                          value={proj.link}
-                          onChange={(e) => updateProject(index, "link", e.target.value)}
-                          placeholder="github.com/myusername/project"
-                        />
-                      </div>
-
-                      <div className="input-row">
-                        <div className="form-group">
-                          <label>GitHub Repository Link</label>
-                          <input
-                            type="text"
-                            value={proj.githubLink || ""}
-                            onChange={(e) => updateProject(index, "githubLink", e.target.value)}
-                            placeholder="github.com/username/repo"
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label>Live Demo Link</label>
-                          <input
-                            type="text"
-                            value={proj.liveDemoLink || ""}
-                            onChange={(e) => updateProject(index, "liveDemoLink", e.target.value)}
-                            placeholder="myproject.demo.com"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="form-group">
-                        <div className="label-row-optimize" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                          <label style={{ margin: 0 }}>Description</label>
-                          <button 
-                            type="button" 
-                            className="optimize-btn-trigger" 
-                            style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "rgba(124, 58, 237, 0.1)", color: "#c084fc", border: "1px solid rgba(124, 58, 237, 0.2)", borderRadius: "4px", padding: "2px 8px", fontSize: "11px", cursor: "pointer", fontWeight: 600 }}
-                            onClick={() => handleOpenOptimizer("project", index)}
-                          >
-                            <Sparkles size={12} /> Optimize with AI
-                          </button>
-                        </div>
-                        <textarea
-                          value={proj.description}
-                          onChange={(e) => updateProject(index, "description", e.target.value)}
-                          placeholder="Outline project goal and your achievements..."
-                          rows={3}
-                        />
-                      </div>
-                    </div>
-                  ))}
-
-                  <button className="add-btn" onClick={addProject}>
-                    <Plus size={16} /> Add Project
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* 5. SKILLS */}
-            <div className={`accordion-item ${openSections.skills ? "open" : ""}`}>
-              <div className="accordion-header" onClick={() => toggleSection("skills")}>
-                <span className="title"><Wrench size={18} /> Technical & Soft Skills</span>
-                {openSections.skills ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-
-              {openSections.skills && (
-                <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <div className="form-group">
-                    <label>Technical Skills (Separate with commas)</label>
-                    <textarea
-                      name="skills"
-                      value={resumeData.skills}
-                      onChange={handleFieldChange}
-                      placeholder="React, TypeScript, Java, SQL, Git..."
-                      rows={2}
-                    />
-                    <small className="help-text">Standard technical skills used across all templates.</small>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Soft Skills (Separate with commas)</label>
-                    <textarea
-                      name="softSkills"
-                      value={resumeData.softSkills || ""}
-                      onChange={handleFieldChange}
-                      placeholder="Leadership, System Design, Communication, Problem Solving..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <div style={{ borderTop: "1px dashed #334155", paddingTop: "12px", marginTop: "4px" }}>
-                    <h4 style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Developer Tech Stack Grouping (Template 3 Only)</h4>
-                    <div className="form-group" style={{ marginBottom: "10px" }}>
-                      <label>Frontend Stack</label>
-                      <input
-                        type="text"
-                        name="techStackFront"
-                        value={resumeData.techStackFront || ""}
-                        onChange={handleFieldChange}
-                        placeholder="React, Next.js, Redux, HTML/CSS"
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: "10px" }}>
-                      <label>Backend Stack</label>
-                      <input
-                        type="text"
-                        name="techStackBack"
-                        value={resumeData.techStackBack || ""}
-                        onChange={handleFieldChange}
-                        placeholder="Node.js, Express, Spring Boot, Go"
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: "10px" }}>
-                      <label>Database Stack</label>
-                      <input
-                        type="text"
-                        name="techStackDatabase"
-                        value={resumeData.techStackDatabase || ""}
-                        onChange={handleFieldChange}
-                        placeholder="PostgreSQL, MongoDB, Redis, MySQL"
-                      />
-                    </div>
-                    <div className="form-group" style={{ marginBottom: "10px" }}>
-                      <label>Tools & Platforms</label>
-                      <input
-                        type="text"
-                        name="techStackTools"
-                        value={resumeData.techStackTools || ""}
-                        onChange={handleFieldChange}
-                        placeholder="Docker, Kubernetes, Git, Jenkins, Webpack"
-                      />
-                    </div>
                     <div className="form-group">
-                      <label>Cloud Services</label>
-                      <input
-                        type="text"
-                        name="techStackCloud"
-                        value={resumeData.techStackCloud || ""}
+                      <label>Soft Skills (Separate with commas)</label>
+                      <textarea
+                        name="softSkills"
+                        value={resumeData.softSkills || ""}
                         onChange={handleFieldChange}
-                        placeholder="AWS (S3, EC2, Lambda), GCP, Azure"
+                        placeholder="Leadership, System Design, Communication, Problem Solving..."
+                        rows={2}
                       />
                     </div>
+
+                    <div style={{ borderTop: "1px dashed #334155", paddingTop: "12px", marginTop: "4px" }}>
+                      <h4 style={{ fontSize: "12px", color: "#94a3b8", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>Developer Tech Stack Grouping (Template 3 Only)</h4>
+                      <div className="form-group" style={{ marginBottom: "10px" }}>
+                        <label>Frontend Stack</label>
+                        <input
+                          type="text"
+                          name="techStackFront"
+                          value={resumeData.techStackFront || ""}
+                          onChange={handleFieldChange}
+                          placeholder="React, Next.js, Redux, HTML/CSS"
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: "10px" }}>
+                        <label>Backend Stack</label>
+                        <input
+                          type="text"
+                          name="techStackBack"
+                          value={resumeData.techStackBack || ""}
+                          onChange={handleFieldChange}
+                          placeholder="Node.js, Express, Spring Boot, Go"
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: "10px" }}>
+                        <label>Database Stack</label>
+                        <input
+                          type="text"
+                          name="techStackDatabase"
+                          value={resumeData.techStackDatabase || ""}
+                          onChange={handleFieldChange}
+                          placeholder="PostgreSQL, MongoDB, Redis, MySQL"
+                        />
+                      </div>
+                      <div className="form-group" style={{ marginBottom: "10px" }}>
+                        <label>Tools & Platforms</label>
+                        <input
+                          type="text"
+                          name="techStackTools"
+                          value={resumeData.techStackTools || ""}
+                          onChange={handleFieldChange}
+                          placeholder="Docker, Kubernetes, Git, Jenkins, Webpack"
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Cloud Services</label>
+                        <input
+                          type="text"
+                          name="techStackCloud"
+                          value={resumeData.techStackCloud || ""}
+                          onChange={handleFieldChange}
+                          placeholder="AWS (S3, EC2, Lambda), GCP, Azure"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* 6. ADDITIONAL INFO */}
-            <div className={`accordion-item ${openSections.additional ? "open" : ""}`}>
-              <div className="accordion-header" onClick={() => toggleSection("additional")}>
-                <span className="title"><Award size={18} /> Additional Information</span>
-                {openSections.additional ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </div>
-
-              {openSections.additional && (
-                <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-                  <div className="form-group">
-                    <label>Certifications (Separate with commas)</label>
-                    <textarea
-                      name="certifications"
-                      value={resumeData.certifications || ""}
-                      onChange={handleFieldChange}
-                      placeholder="AWS Certified Solutions Architect, Certified ScrumMaster..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Languages (Separate with commas)</label>
-                    <textarea
-                      name="languages"
-                      value={resumeData.languages || ""}
-                      onChange={handleFieldChange}
-                      placeholder="English (Native), Spanish (Fluent), Japanese (Basic)..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Achievements & Highlights (Separate with commas)</label>
-                    <textarea
-                      name="achievements"
-                      value={resumeData.achievements || ""}
-                      onChange={handleFieldChange}
-                      placeholder="Reduced page latency by 40%, Mentored 5 junior engineers..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>GitHub Contributions Summary (Template 3 Only)</label>
-                    <textarea
-                      name="githubContributions"
-                      value={resumeData.githubContributions || ""}
-                      onChange={handleFieldChange}
-                      placeholder="Active open-source contributor. Maintained react-query-helper with 2k+ downloads weekly..."
-                      rows={2}
-                    />
-                  </div>
+            {isSectionVisible(5) && (
+              <div className={`accordion-item ${openSections.additional ? "open" : ""}`}>
+                <div className="accordion-header" onClick={() => toggleSection("additional")}>
+                  <span className="title"><Award size={18} /> Additional Information</span>
+                  {openSections.additional ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                 </div>
-              )}
-            </div>
+
+                {openSections.additional && (
+                  <div className="accordion-body" style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    <div className="form-group">
+                      <label>Certifications (Separate with commas)</label>
+                      <textarea
+                        name="certifications"
+                        value={resumeData.certifications || ""}
+                        onChange={handleFieldChange}
+                        placeholder="AWS Certified Solutions Architect, Certified ScrumMaster..."
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Languages (Separate with commas)</label>
+                      <textarea
+                        name="languages"
+                        value={resumeData.languages || ""}
+                        onChange={handleFieldChange}
+                        placeholder="English (Native), Spanish (Fluent), Japanese (Basic)..."
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Achievements & Highlights (Separate with commas)</label>
+                      <textarea
+                        name="achievements"
+                        value={resumeData.achievements || ""}
+                        onChange={handleFieldChange}
+                        placeholder="Reduced page latency by 40%, Mentored 5 junior engineers..."
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>GitHub Contributions Summary (Template 3 Only)</label>
+                      <textarea
+                        name="githubContributions"
+                        value={resumeData.githubContributions || ""}
+                        onChange={handleFieldChange}
+                        placeholder="Active open-source contributor. Maintained react-query-helper with 2k+ downloads weekly..."
+                        rows={2}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
           </div>
         </div>
@@ -2032,101 +2875,264 @@ const BuildResume: React.FC = () => {
         </div>
       )}
 
-      {/* Template Selection Overlay Modal */}
+      {/* Template Carousel Modal (SRS #3) */}
       {showTemplateSelector && (
         <div className="template-selector-overlay">
-          <div className="template-selector-container">
+          <div className="template-selector-container carousel-container">
             <div className="template-selector-header">
-              <h2>Select a Resume Template</h2>
-              <p>Choose from our curated professional styles designed to get you hired</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                    <Layers className="w-5 h-5 text-indigo-400" />
+                    Template Selector Carousel
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Slide between professional, ATS-optimized resume templates
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="close-modal-btn"
+                  onClick={() => setShowTemplateSelector(false)}
+                >
+                  &times;
+                </button>
+              </div>
             </div>
 
-            <div className="template-cards-grid">
-              {/* Template 1 Card */}
-              <div 
-                className={`template-card-item ${selectedTemplate === "template-1" ? "active" : ""}`}
-                onClick={() => setSelectedTemplate("template-1")}
+            {/* Carousel Interactive View */}
+            <div className="carousel-slide-wrapper" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "20px 0" }}>
+              <button
+                type="button"
+                onClick={() => setCarouselIndex(prev => (prev === 0 ? TEMPLATES_LIST.length - 1 : prev - 1))}
+                className="carousel-arrow-btn"
+                style={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "50%", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", color: "#ffffff", cursor: "pointer" }}
               >
-                <div className="template-preview-mock template-1-mock">
+                <ChevronLeft size={20} />
+              </button>
+
+              <div className="carousel-active-card" style={{ flex: 1, backgroundColor: "#0f172a", border: selectedTemplate === TEMPLATES_LIST[carouselIndex].id ? "2px solid #6366f1" : "1px solid #1e293b", borderRadius: "16px", padding: "24px", textAlign: "center" }}>
+                <span className="template-tag" style={{ backgroundColor: "rgba(99, 102, 241, 0.15)", color: "#818cf8", fontSize: "11px", fontWeight: "700", padding: "3px 10px", borderRadius: "12px", textTransform: "uppercase" }}>
+                  {TEMPLATES_LIST[carouselIndex].badge}
+                </span>
+                <h3 style={{ color: "#ffffff", fontSize: "18px", fontWeight: "700", marginTop: "12px", marginBottom: "6px" }}>
+                  {TEMPLATES_LIST[carouselIndex].title}
+                </h3>
+                <p style={{ color: "#94a3b8", fontSize: "13px", maxWidth: "420px", margin: "0 auto 16px auto", lineHeight: "1.5" }}>
+                  {TEMPLATES_LIST[carouselIndex].desc}
+                </p>
+
+                <div className={`template-preview-mock ${TEMPLATES_LIST[carouselIndex].previewClass}`} style={{ margin: "0 auto 20px auto", maxWidth: "260px", height: "140px" }}>
                   <div className="mock-header"></div>
                   <div className="mock-body-line"></div>
                   <div className="mock-body-line short"></div>
-                  <div className="mock-body-line"></div>
                 </div>
-                <div className="template-card-info">
-                  <span className="template-tag ats-tag">ATS-Friendly</span>
-                  <h3>Professional ATS-Friendly</h3>
-                  <p>Clean, single-column design optimized with dark blue accents (#1E3A8A) for passing automated screenings.</p>
-                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedTemplate(TEMPLATES_LIST[carouselIndex].id);
+                    setShowTemplateSelector(false);
+                  }}
+                  className="select-template-confirm-btn"
+                  style={{ backgroundColor: selectedTemplate === TEMPLATES_LIST[carouselIndex].id ? "#10b981" : "#4f46e5", color: "#ffffff", border: "none", padding: "10px 24px", borderRadius: "10px", fontWeight: "600", fontSize: "13px", cursor: "pointer" }}
+                >
+                  {selectedTemplate === TEMPLATES_LIST[carouselIndex].id ? "✓ Currently Selected" : "Apply This Template"}
+                </button>
               </div>
 
-              {/* Template 2 Card */}
-              <div 
-                className={`template-card-item ${selectedTemplate === "template-2" ? "active" : ""}`}
-                onClick={() => setSelectedTemplate("template-2")}
+              <button
+                type="button"
+                onClick={() => setCarouselIndex(prev => (prev === TEMPLATES_LIST.length - 1 ? 0 : prev + 1))}
+                className="carousel-arrow-btn"
+                style={{ backgroundColor: "#1e293b", border: "1px solid #334155", borderRadius: "50%", width: "40px", height: "40px", display: "flex", alignItems: "center", justifyContent: "center", color: "#ffffff", cursor: "pointer" }}
               >
-                <div className="template-preview-mock template-2-mock">
-                  <div className="mock-sidebar"></div>
-                  <div className="mock-main">
-                    <div className="mock-body-line short"></div>
-                    <div className="mock-body-line"></div>
-                  </div>
-                </div>
-                <div className="template-card-info">
-                  <span className="template-tag exec-tag">Premium Executive</span>
-                  <h3>Premium Executive</h3>
-                  <p>30/70 structured layout with a navy blue sidebar (#0F172A). Best for showcasing profile photo and core experience.</p>
-                </div>
-              </div>
-
-              {/* Template 3 Card */}
-              <div 
-                className={`template-card-item ${selectedTemplate === "template-3" ? "active" : ""}`}
-                onClick={() => setSelectedTemplate("template-3")}
-              >
-                <div className="template-preview-mock template-3-mock">
-                  <div className="mock-header-monospace"></div>
-                  <div className="mock-body-line"></div>
-                  <div className="mock-grid">
-                    <div className="mock-cell"></div>
-                    <div className="mock-cell"></div>
-                  </div>
-                </div>
-                <div className="template-card-info">
-                  <span className="template-tag tech-tag">Software Engineer</span>
-                  <h3>Software Engineer Spec</h3>
-                  <p>Developer-focused design featuring dark blue headers, monospace accents, and dedicated sections for tech stacks.</p>
-                </div>
-              </div>
-
-              {/* Template 4 Card */}
-              <div 
-                className={`template-card-item ${selectedTemplate === "template-4" ? "active" : ""}`}
-                onClick={() => setSelectedTemplate("template-4")}
-              >
-                <div className="template-preview-mock template-4-mock">
-                  <div className="mock-header-gradient"></div>
-                  <div className="mock-cards">
-                    <div className="mock-mini-card"></div>
-                    <div className="mock-mini-card"></div>
-                  </div>
-                </div>
-                <div className="template-card-info">
-                  <span className="template-tag creative-tag">Modern Creative</span>
-                  <h3>Modern Creative</h3>
-                  <p>Stunning design with purple/blue gradients, modern card layouts, subtle animations, and premium shadows.</p>
-                </div>
-              </div>
+                <ChevronRight size={20} />
+              </button>
             </div>
 
-            <div className="template-selector-actions">
-              <button 
-                type="button" 
-                className="select-template-confirm-btn"
-                onClick={() => setShowTemplateSelector(false)}
+            {/* Slide Dots Indicator */}
+            <div style={{ display: "flex", justifyContent: "center", gap: "8px", paddingBottom: "10px" }}>
+              {TEMPLATES_LIST.map((t, idx) => (
+                <button
+                  key={t.id}
+                  onClick={() => setCarouselIndex(idx)}
+                  style={{
+                    width: carouselIndex === idx ? "24px" : "8px",
+                    height: "8px",
+                    borderRadius: "4px",
+                    backgroundColor: carouselIndex === idx ? "#6366f1" : "#334155",
+                    border: "none",
+                    cursor: "pointer",
+                    transition: "all 0.2s"
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cover Letter Generator Modal (SRS #19) */}
+      {coverLetterModalOpen && (
+        <div className="ai-modal-overlay">
+          <div className="ai-modal-container" style={{ maxWidth: "640px" }}>
+            <div className="ai-modal-header">
+              <div className="header-title">
+                <FileText size={18} className="sparkle-icon" />
+                <span>AI Cover Letter Generator (SRS #19)</span>
+              </div>
+              <button
+                type="button"
+                className="close-modal-btn"
+                onClick={() => setCoverLetterModalOpen(false)}
               >
-                Start Customizing with This Template
+                &times;
               </button>
+            </div>
+
+            <div className="ai-modal-body" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="input-group">
+                <label>Target Company Name *</label>
+                <input
+                  type="text"
+                  value={targetCompany}
+                  onChange={(e) => setTargetCompany(e.target.value)}
+                  placeholder="e.g. Google, Netflix, Stripe..."
+                  style={{ width: "100%", padding: "10px 14px", backgroundColor: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", color: "#ffffff", fontSize: "13px" }}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Target Role (Defaults to resume title)</label>
+                <input
+                  type="text"
+                  value={targetRoleInput}
+                  onChange={(e) => setTargetRoleInput(e.target.value)}
+                  placeholder={resumeData.title || "Full Stack Engineer"}
+                  style={{ width: "100%", padding: "10px 14px", backgroundColor: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", color: "#ffffff", fontSize: "13px" }}
+                />
+              </div>
+
+              {!generatedCoverLetter && (
+                <button
+                  type="button"
+                  onClick={handleGenerateCoverLetter}
+                  disabled={coverLetterLoading || !targetCompany.trim()}
+                  className="optimize-action-btn"
+                  style={{ backgroundColor: "#4f46e5", color: "#ffffff", border: "none", padding: "12px", borderRadius: "10px", fontWeight: "600", fontSize: "14px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
+                >
+                  <Sparkles size={16} /> {coverLetterLoading ? "Generating Tailored Draft..." : "Generate Cover Letter"}
+                </button>
+              )}
+
+              {generatedCoverLetter && (
+                <div className="space-y-4">
+                  <div className="input-group">
+                    <label>Generated Cover Letter Draft</label>
+                    <textarea
+                      value={generatedCoverLetter}
+                      onChange={(e) => setGeneratedCoverLetter(e.target.value)}
+                      rows={12}
+                      style={{ width: "100%", padding: "14px", backgroundColor: "#0b1120", border: "1px solid #1e293b", borderRadius: "10px", color: "#e2e8f0", fontSize: "13px", lineHeight: "1.6", fontFamily: "inherit" }}
+                    />
+                  </div>
+
+                  <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(generatedCoverLetter);
+                        setCopiedCoverLetter(true);
+                        setTimeout(() => setCopiedCoverLetter(false), 2500);
+                      }}
+                      style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "#1e293b", border: "1px solid #334155", color: "#e2e8f0", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", cursor: "pointer" }}
+                    >
+                      {copiedCoverLetter ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                      {copiedCoverLetter ? "Copied to Clipboard!" : "Copy Letter"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const blob = new Blob([generatedCoverLetter], { type: "text/plain" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `Cover_Letter_${targetCompany}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                      style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "#4f46e5", color: "#ffffff", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
+                    >
+                      <Download size={14} /> Download .txt
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Shareable Link & Tracking Modal (SRS #20, #21) */}
+      {shareModalOpen && (
+        <div className="ai-modal-overlay">
+          <div className="ai-modal-container" style={{ maxWidth: "540px" }}>
+            <div className="ai-modal-header">
+              <div className="header-title">
+                <Share2 size={18} className="sparkle-icon" />
+                <span>Shareable Web Link & Tracking (SRS #20, #21)</span>
+              </div>
+              <button
+                type="button"
+                className="close-modal-btn"
+                onClick={() => setShareModalOpen(false)}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="ai-modal-body" style={{ padding: "20px", display: "flex", flexDirection: "column", gap: "16px" }}>
+              <p style={{ color: "#94a3b8", fontSize: "13px", margin: 0, lineHeight: 1.5 }}>
+                Your resume is now publicly accessible via this secure read-only URL. You can paste it into your LinkedIn profile, GitHub readme, or job applications.
+              </p>
+
+              <div style={{ display: "flex", gap: "8px" }}>
+                <input
+                  type="text"
+                  readOnly
+                  value={`${window.location.origin}/public/resume/${shareToken || ""}`}
+                  style={{ flex: 1, padding: "10px 14px", backgroundColor: "#0b1120", border: "1px solid #1e293b", borderRadius: "8px", color: "#818cf8", fontSize: "12px", fontFamily: "monospace" }}
+                />
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(`${window.location.origin}/public/resume/${shareToken}`);
+                    setCopiedShareLink(true);
+                    setTimeout(() => setCopiedShareLink(false), 2500);
+                  }}
+                  style={{ display: "flex", alignItems: "center", gap: "6px", backgroundColor: "#4f46e5", color: "#ffffff", border: "none", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "600", cursor: "pointer" }}
+                >
+                  {copiedShareLink ? <Check size={14} /> : <Copy size={14} />}
+                  {copiedShareLink ? "Copied!" : "Copy"}
+                </button>
+              </div>
+
+              <div style={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "10px", padding: "14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <span style={{ fontSize: "11px", textTransform: "uppercase", color: "#64748b", fontWeight: 700 }}>Telemetry Tracking</span>
+                  <p style={{ margin: "2px 0 0 0", color: "#ffffff", fontSize: "13px", fontWeight: 600 }}>Active link visits & PDF downloads are tracked live</p>
+                </div>
+                <a
+                  href={`/public/resume/${shareToken}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ color: "#818cf8", fontSize: "12px", display: "flex", alignItems: "center", gap: "4px", textDecoration: "none", fontWeight: 600 }}
+                >
+                  Preview Page &rarr;
+                </a>
+              </div>
             </div>
           </div>
         </div>

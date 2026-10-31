@@ -61,6 +61,159 @@ Junior Developer | AppSolutions | 2022 - 2023
 - Assisted in building website landing pages using JavaScript and HTML/CSS.
 - Developed backend API endpoints under supervision using Node.js and MySQL.`;
 
+// Visual Radar Chart Component (SRS #5)
+const SkillRadarChart: React.FC<{ matchingSkills: string[]; missingSkills: string[] }> = ({
+  matchingSkills,
+  missingSkills
+}) => {
+  const categories = [
+    {
+      name: "Frontend",
+      keywords: ["react", "vue", "angular", "next.js", "nextjs", "javascript", "typescript", "html", "css", "tailwind", "redux"]
+    },
+    {
+      name: "Backend",
+      keywords: ["node.js", "node", "express", "java", "spring", "springboot", "python", "django", "flask", "fastapi", "go", "golang", "c#", "dotnet"]
+    },
+    {
+      name: "Database",
+      keywords: ["postgresql", "postgres", "mysql", "mongodb", "redis", "sql", "nosql", "elasticsearch", "firebase"]
+    },
+    {
+      name: "Cloud & DevOps",
+      keywords: ["aws", "azure", "gcp", "docker", "kubernetes", "ci/cd", "jenkins", "linux", "serverless"]
+    },
+    {
+      name: "Architecture & Tools",
+      keywords: ["git", "github", "graphql", "rest", "api", "microservices", "agile", "scrum", "jest", "cypress", "security"]
+    }
+  ];
+
+  const totalPoints = categories.length;
+  const radius = 100;
+  const centerX = 160;
+  const centerY = 140;
+
+  const scores = categories.map(cat => {
+    const matchedCount = cat.keywords.filter(kw => matchingSkills.map(s => s.toLowerCase()).includes(kw)).length;
+    const missingCount = cat.keywords.filter(kw => missingSkills.map(s => s.toLowerCase()).includes(kw)).length;
+    const totalRequired = matchedCount + missingCount;
+    if (totalRequired === 0) return 60;
+    const ratio = matchedCount / totalRequired;
+    return Math.max(25, Math.min(100, Math.round(ratio * 100)));
+  });
+
+  const getCoordinates = (value: number, index: number) => {
+    const angle = (Math.PI * 2 / totalPoints) * index - Math.PI / 2;
+    const r = (radius * value) / 100;
+    const x = centerX + r * Math.cos(angle);
+    const y = centerY + r * Math.sin(angle);
+    return { x, y };
+  };
+
+  const rings = [25, 50, 75, 100];
+
+  const candidatePoints = scores.map((score, i) => {
+    const { x, y } = getCoordinates(score, i);
+    return `${x},${y}`;
+  }).join(" ");
+
+  const targetPoints = scores.map((_, i) => {
+    const { x, y } = getCoordinates(100, i);
+    return `${x},${y}`;
+  }).join(" ");
+
+  return (
+    <div style={{ backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "16px", padding: "20px", display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+      <div style={{ width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+        <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "700", color: "#ffffff" }}>
+          Target vs. Candidate Competency Radar (SRS #5)
+        </h4>
+        <div style={{ display: "flex", gap: "12px", fontSize: "11px", fontWeight: "600" }}>
+          <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "#38bdf8" }}>
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#38bdf8" }}></span>
+            Target Role (100%)
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: "4px", color: "#a855f7" }}>
+            <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#a855f7" }}></span>
+            Resume Match
+          </span>
+        </div>
+      </div>
+
+      <svg width="320" height="280" viewBox="0 0 320 280">
+        {rings.map(ring => {
+          const ringPoints = categories.map((_, i) => {
+            const { x, y } = getCoordinates(ring, i);
+            return `${x},${y}`;
+          }).join(" ");
+          return (
+            <polygon
+              key={ring}
+              points={ringPoints}
+              fill="none"
+              stroke="#1e293b"
+              strokeWidth="1.2"
+              strokeDasharray={ring === 100 ? undefined : "3 3"}
+            />
+          );
+        })}
+
+        {categories.map((cat, i) => {
+          const { x, y } = getCoordinates(100, i);
+          const labelCoord = getCoordinates(120, i);
+          return (
+            <g key={cat.name}>
+              <line x1={centerX} y1={centerY} x2={x} y2={y} stroke="#334155" strokeWidth="1" />
+              <text
+                x={labelCoord.x}
+                y={labelCoord.y}
+                fill="#94a3b8"
+                fontSize="10"
+                fontWeight="600"
+                textAnchor="middle"
+                dominantBaseline="central"
+              >
+                {cat.name}
+              </text>
+            </g>
+          );
+        })}
+
+        <polygon
+          points={targetPoints}
+          fill="rgba(56, 189, 248, 0.08)"
+          stroke="#38bdf8"
+          strokeWidth="1.5"
+          strokeDasharray="4 4"
+        />
+
+        <polygon
+          points={candidatePoints}
+          fill="rgba(168, 85, 247, 0.3)"
+          stroke="#a855f7"
+          strokeWidth="2.5"
+        />
+
+        {scores.map((score, i) => {
+          const { x, y } = getCoordinates(score, i);
+          return (
+            <circle
+              key={i}
+              cx={x}
+              cy={y}
+              r="4"
+              fill="#c084fc"
+              stroke="#ffffff"
+              strokeWidth="1.5"
+            />
+          );
+        })}
+      </svg>
+    </div>
+  );
+};
+
 const AnalyzeResume: React.FC = () => {
   const [resumeText, setResumeText] = useState("");
   const [jobText, setJobText] = useState("");
@@ -75,6 +228,7 @@ const AnalyzeResume: React.FC = () => {
   const [isParsingFile, setIsParsingFile] = useState(false);
   const [parseError, setParseError] = useState("");
   const [guestMode, setGuestMode] = useState(false);
+  const [copiedSkill, setCopiedSkill] = useState<string | null>(null);
 
   const scanPhrases = [
     "Uploading resume and job description...",
@@ -653,6 +807,11 @@ const AnalyzeResume: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Visual Radar Chart (SRS #5) */}
+                <div style={{ margin: "20px 0" }}>
+                  <SkillRadarChart matchingSkills={results.matchingSkills} missingSkills={results.missingSkills} />
+                </div>
+
                 {/* Keyword tag lists */}
                 <div className="keyword-section-card">
                   <h3>Keyword Gap Analysis</h3>
@@ -674,9 +833,46 @@ const AnalyzeResume: React.FC = () => {
                     <div className="split-column">
                       <h4 style={{ color: "#ef4444" }}>Missing Skills Gap ({results.missingSkills.length})</h4>
                       {results.missingSkills.length > 0 ? (
-                        <div className="keyword-tags">
+                        <div className="keyword-tags" style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
                           {results.missingSkills.map((skill, i) => (
-                            <span key={i} className="skill-tag missing">{skill.toUpperCase()}</span>
+                            <div
+                              key={i}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                backgroundColor: "rgba(239, 68, 68, 0.12)",
+                                border: "1px solid rgba(239, 68, 68, 0.3)",
+                                borderRadius: "8px",
+                                padding: "4px 10px"
+                              }}
+                            >
+                              <span style={{ color: "#fca5a5", fontSize: "11px", fontWeight: "700" }}>{skill.toUpperCase()}</span>
+                              <button
+                                type="button"
+                                title="Copy skill to paste into your resume (SRS #15)"
+                                onClick={async () => {
+                                  await navigator.clipboard.writeText(skill);
+                                  setCopiedSkill(skill);
+                                  setTimeout(() => setCopiedSkill(null), 2000);
+                                }}
+                                style={{
+                                  backgroundColor: "rgba(239, 68, 68, 0.25)",
+                                  border: "none",
+                                  borderRadius: "4px",
+                                  color: "#fee2e2",
+                                  padding: "2px 6px",
+                                  fontSize: "10px",
+                                  fontWeight: "600",
+                                  cursor: "pointer",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "3px"
+                                }}
+                              >
+                                {copiedSkill === skill ? "✓ Copied" : "+ Copy"}
+                              </button>
+                            </div>
                           ))}
                         </div>
                       ) : (

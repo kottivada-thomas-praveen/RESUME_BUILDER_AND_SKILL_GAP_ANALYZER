@@ -62,7 +62,7 @@ const Signup = () => {
         setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(interval);
-            navigate("/");
+            navigate("/build-resume");
             return 0;
           }
           return prev - 1;
@@ -482,8 +482,8 @@ const Signup = () => {
             <p className="redirect-timer">
               Redirecting to dashboard in <span>{countdown}</span> seconds...
             </p>
-            <button className="dashboard-direct-btn" onClick={() => navigate("/")}>
-              Go to Dashboard Now
+            <button className="dashboard-direct-btn" onClick={() => navigate("/build-resume")}>
+              Start Building Resume Now
             </button>
           </div>
         </div>
