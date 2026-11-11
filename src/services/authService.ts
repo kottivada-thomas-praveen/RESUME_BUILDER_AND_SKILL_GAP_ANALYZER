@@ -1,7 +1,8 @@
 import axiosInstance from "./axiosInstance";
 
 export interface SignupPayload {
-  fullName: string;
+  fullName?: string;
+  name?: string;
   email: string;
   password?: string;
 }
@@ -12,8 +13,14 @@ export interface LoginPayload {
 }
 
 export interface UpdateProfilePayload {
-  fullName: string;
+  fullName?: string;
+  name?: string;
   email: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
 }
 
 export interface UserResponseData {
@@ -46,7 +53,13 @@ export interface ApiResponse<T> {
 
 export const authService = {
   async signup(payload: SignupPayload): Promise<ApiResponse<AuthResponseData>> {
-    const response = await axiosInstance.post<ApiResponse<AuthResponseData>>("/api/auth/signup", payload);
+    const displayName = payload.name || payload.fullName || "";
+    const body = {
+      ...payload,
+      name: displayName,
+      fullName: displayName,
+    };
+    const response = await axiosInstance.post<ApiResponse<AuthResponseData>>("/api/auth/signup", body);
     return response.data;
   },
 
@@ -61,7 +74,34 @@ export const authService = {
   },
 
   async updateProfile(payload: UpdateProfilePayload): Promise<ApiResponse<UserResponseData>> {
-    const response = await axiosInstance.put<ApiResponse<UserResponseData>>("/api/auth/profile", payload);
+    const displayName = payload.fullName || payload.name || "";
+    const body = {
+      ...payload,
+      fullName: displayName,
+      name: displayName,
+    };
+    const response = await axiosInstance.put<ApiResponse<UserResponseData>>("/api/auth/profile", body);
+    return response.data;
+  },
+
+  async forgotPassword(email: string): Promise<ApiResponse<void>> {
+    const response = await axiosInstance.post<ApiResponse<void>>("/api/auth/forgot-password", { email });
+    return response.data;
+  },
+
+  async resetPassword(payload: ResetPasswordPayload): Promise<ApiResponse<void>> {
+    const response = await axiosInstance.post<ApiResponse<void>>("/api/auth/reset-password", {
+      token: payload.token,
+      newPassword: payload.newPassword,
+    });
+    return response.data;
+  },
+
+  async refreshToken(refreshToken: string): Promise<ApiResponse<AuthResponseData>> {
+    const response = await axiosInstance.post<ApiResponse<AuthResponseData>>("/api/auth/refresh", {
+      refreshToken,
+      token: refreshToken,
+    });
     return response.data;
   },
 
@@ -70,3 +110,4 @@ export const authService = {
     return response.data;
   },
 };
+

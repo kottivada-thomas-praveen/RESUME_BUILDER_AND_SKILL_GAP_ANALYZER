@@ -221,13 +221,17 @@ const Signup = () => {
       const response = await Api.post("/api/auth/signup", { name, email, password });
       
       if (response.data && response.data.data && response.data.data.token) {
-        localStorage.setItem("token", response.data.data.token);
-        localStorage.setItem("name", response.data.data.name || name);
+        const token = response.data.data.token;
+        localStorage.setItem("token", token);
+        localStorage.setItem("jwt_auth_token", token);
+        localStorage.setItem("name", response.data.data.name || response.data.data.fullName || name);
         localStorage.setItem("email", response.data.data.email || email);
         localStorage.setItem("role", response.data.data.role || "USER");
       } else if (response.data && response.data.token) {
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("name", response.data.name || name);
+        const token = response.data.token;
+        localStorage.setItem("token", token);
+        localStorage.setItem("jwt_auth_token", token);
+        localStorage.setItem("name", response.data.name || response.data.fullName || name);
         localStorage.setItem("email", response.data.email || email);
         localStorage.setItem("role", response.data.role || "USER");
       }
@@ -237,8 +241,14 @@ const Signup = () => {
     } catch (error: any) {
       setLoading(false);
       console.error(error);
-      const msg = error.response?.data?.message || "Registration failed. Please try again.";
-      setErrorMsg(msg);
+      const serverMsg = error.response?.data?.message;
+      const fieldErrors = error.response?.data?.data;
+      if (typeof fieldErrors === "object" && fieldErrors !== null) {
+        const details = Object.entries(fieldErrors).map(([k, v]) => `${k}: ${v}`).join(", ");
+        setErrorMsg(serverMsg ? `${serverMsg} (${details})` : details);
+      } else {
+        setErrorMsg(serverMsg || "Registration failed. Please try again.");
+      }
     }
   };
 

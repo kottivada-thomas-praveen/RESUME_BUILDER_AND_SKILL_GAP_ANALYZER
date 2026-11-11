@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authService } from "../services/authService";
+import { useAuth } from "../hooks/useAuth";
 
 export const Signup: React.FC = () => {
   const [fullName, setFullName] = useState("");
@@ -12,7 +13,15 @@ export const Signup: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // If already authenticated, redirect to dashboard immediately
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   // Password strength calculation
   const getPasswordStrength = (pass: string) => {
@@ -33,6 +42,7 @@ export const Signup: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent duplicate concurrent submissions
     setError(null);
     setSuccess(null);
 
@@ -48,7 +58,11 @@ export const Signup: React.FC = () => {
 
     setLoading(true);
     try {
-      const response = await authService.signup({ fullName, email, password });
+      const response = await authService.signup({
+        fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      });
       if (response.success) {
         setSuccess("Registration successful! Redirecting to Login...");
         setTimeout(() => {
@@ -58,7 +72,16 @@ export const Signup: React.FC = () => {
         setError(response.message || "Signup failed");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Registration failed");
+      const serverMsg = err.response?.data?.message;
+      const fieldErrors = err.response?.data?.data;
+      if (typeof fieldErrors === "object" && fieldErrors !== null) {
+        const details = Object.entries(fieldErrors)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(", ");
+        setError(serverMsg ? `${serverMsg} (${details})` : details);
+      } else {
+        setError(serverMsg || err.message || "Registration failed");
+      }
     } finally {
       setLoading(false);
     }

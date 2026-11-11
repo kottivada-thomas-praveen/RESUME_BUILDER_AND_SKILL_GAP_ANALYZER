@@ -8,4 +8,22 @@ export default defineConfig({
     tailwindcss(),
     react()
   ],
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes('@mui') || id.includes('@emotion')) {
+            return 'vendor-mui';
+          }
+          if (id.includes('lucide-react')) {
+            return 'vendor-lucide';
+          }
+          if (id.includes('react-router') || id.includes('react-dom') || id.includes('/react/')) {
+            return 'vendor-react';
+          }
+        },
+      },
+    },
+  },
 })

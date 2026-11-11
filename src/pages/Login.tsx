@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { authService } from "../services/authService";
 import { useAuth } from "../hooks/useAuth";
@@ -14,19 +14,27 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const { login } = useAuth();
+  const { isAuthenticated, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const from = location.state?.from?.pathname || "/dashboard";
 
+  // If already authenticated, redirect to target or dashboard immediately
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return; // Prevent duplicate concurrent submissions
     setError(null);
     setLoading(true);
 
     try {
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ email: email.trim().toLowerCase(), password });
       if (response.success && response.data) {
         login(response.data);
         navigate(from, { replace: true });
@@ -34,7 +42,16 @@ export const Login: React.FC = () => {
         setError(response.message || "Login failed. Please check your credentials.");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || "Invalid email or password.");
+      const serverMsg = err.response?.data?.message;
+      const fieldErrors = err.response?.data?.data;
+      if (typeof fieldErrors === "object" && fieldErrors !== null) {
+        const details = Object.entries(fieldErrors)
+          .map(([k, v]) => `${k}: ${v}`)
+          .join(", ");
+        setError(serverMsg ? `${serverMsg} (${details})` : details);
+      } else {
+        setError(serverMsg || err.message || "Invalid email or password.");
+      }
     } finally {
       setLoading(false);
     }
@@ -42,8 +59,9 @@ export const Login: React.FC = () => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!forgotEmail) return;
     try {
-      await authService.signup({ fullName: "", email: forgotEmail, password: "" }); // or call forgotPassword API endpoint
+      await authService.forgotPassword(forgotEmail);
     } catch {
       // simulate UI success for reset link
     }

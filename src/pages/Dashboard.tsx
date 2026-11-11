@@ -24,7 +24,8 @@ export const Dashboard: React.FC = () => {
     if (!window.confirm("Are you sure you want to delete this resume?")) return;
     try {
       await Api.delete(`/api/resumes/${id}`);
-      fetchResumes();
+      // Optimistic update: remove from local state immediately — no extra GET request needed.
+      setResumes((prev) => prev.filter((r) => r.id !== id));
     } catch (e) {
       alert("Failed to delete resume.");
     }
@@ -53,7 +54,8 @@ export const Dashboard: React.FC = () => {
       const res = await Api.post(`/api/resumes/${id}/clone`);
       if (res.data?.data) {
         alert("Resume successfully cloned! You can now customize this new version.");
-        fetchResumes();
+        // Optimistic update: prepend the new clone — no extra GET request needed.
+        setResumes((prev) => [res.data.data, ...prev]);
       }
     } catch (e: any) {
       alert(e.response?.data?.message || "Failed to clone resume.");
@@ -69,7 +71,10 @@ export const Dashboard: React.FC = () => {
         await navigator.clipboard.writeText(publicUrl);
         setCopiedToken(token);
         setTimeout(() => setCopiedToken(null), 3000);
-        fetchResumes();
+        // Optimistic update: patch the share token on the existing item in local state.
+        setResumes((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, shareToken: token, isPublic: true } : r))
+        );
       }
     } catch (e: any) {
       alert("Failed to generate share link.");
@@ -88,7 +93,7 @@ export const Dashboard: React.FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      fetchResumes();
+      // No refetch needed — download doesn't change resume state visible in the dashboard.
     } catch (e) {
       alert("Could not export PDF. Please try again.");
     }
