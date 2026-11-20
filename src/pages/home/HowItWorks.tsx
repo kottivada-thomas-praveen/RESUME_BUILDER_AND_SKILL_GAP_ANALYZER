@@ -41,7 +41,7 @@ export const HowItWorks: React.FC = () => {
             ✦ SIMPLE 3-STEP PROCESS
           </Badge>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
-            How RBSGA Supercharges Your Job Hunt
+            How ResumeCraft AI Supercharges Your Job Hunt
           </h2>
           <p className="text-base sm:text-lg text-slate-400 leading-relaxed">
             From zero to interview-ready in three straightforward steps.

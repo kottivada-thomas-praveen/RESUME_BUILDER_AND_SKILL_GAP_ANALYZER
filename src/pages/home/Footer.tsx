@@ -50,7 +50,7 @@ export const Footer: React.FC = () => {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <div className="flex flex-col">
-                <span className="text-lg font-black text-white leading-none">RBSGA</span>
+                <span className="text-lg font-black text-white leading-none">ResumeCraft AI</span>
                 <span className="text-[10px] uppercase font-semibold text-indigo-400 tracking-wider">
                   CareerCraft AI
                 </span>
@@ -180,21 +180,21 @@ export const Footer: React.FC = () => {
                 <LinkedinIcon className="w-4 h-4" />
               </a>
               <a
-                href="mailto:support@rbsga.ai"
+                href="mailto:support@resumecraft.ai"
                 className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center hover:text-white hover:border-slate-700 transition-colors"
               >
                 <Mail className="w-4 h-4" />
               </a>
             </div>
             <p className="text-xs text-slate-500 pt-2">
-              Questions? Reach out to support@rbsga.ai
+              Questions? Reach out to support@resumecraft.ai
             </p>
           </div>
         </div>
 
         {/* Bottom copyright */}
         <div className="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <p>© {new Date().getFullYear()} RBSGA CareerCraft AI. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} ResumeCraft AI. All rights reserved.</p>
 
           <div className="flex items-center gap-6">
             <a href="#contact" className="hover:text-white transition-colors">

@@ -32,7 +32,7 @@ function Navbar(){
           <nav className="navbar">
             <div className="logo" onClick={() => { navigate("/"); closeMenu(); }} style={{ cursor: "pointer" }}>
                 <Sparkles size={24} className="logo-icon" />
-                <span className="logo-text">Careercraft <span className="highlight"></span></span>
+                <span className="logo-text">ResumeCraft AI <span className="highlight"></span></span>
             </div>
 
             <div className="menu-toggle" onClick={toggleMenu} aria-label="Toggle menu">

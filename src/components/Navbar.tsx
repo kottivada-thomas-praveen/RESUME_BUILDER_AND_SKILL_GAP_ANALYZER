@@ -50,7 +50,7 @@ export const Navbar: React.FC = () => {
             </div>
             <div className="flex flex-col">
               <span className="text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent leading-none">
-                RBSGA
+                ResumeCraft AI
               </span>
               <span className="text-[10px] uppercase font-semibold tracking-widest text-indigo-400 leading-tight">
                 CareerCraft AI

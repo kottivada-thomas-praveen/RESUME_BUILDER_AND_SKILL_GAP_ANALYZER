@@ -8,7 +8,7 @@ export const FAQSection: React.FC = () => {
   const faqs = [
     {
       q: "What is an ATS and why do I need an ATS-optimized resume?",
-      a: "An Applicant Tracking System (ATS) is software utilized by over 95% of Fortune 500 companies to automatically filter and rank candidates before a human recruiter ever sees their resume. If your resume lacks targeted keywords or uses non-standard formatting, it can be automatically rejected. RBSGA formats your resume cleanly and aligns keyword density so you pass automated screens.",
+      a: "An Applicant Tracking System (ATS) is software utilized by over 95% of Fortune 500 companies to automatically filter and rank candidates before a human recruiter ever sees their resume. If your resume lacks targeted keywords or uses non-standard formatting, it can be automatically rejected. ResumeCraft AI formats your resume cleanly and aligns keyword density so you pass automated screens.",
     },
     {
       q: "How does the Skill Gap Analyzer work?",
@@ -23,7 +23,7 @@ export const FAQSection: React.FC = () => {
       a: "Absolutely. We treat your personal credentials, contact information, and career history with strict enterprise security. Your resumes and profile data belong exclusively to you and are never shared or sold to third parties.",
     },
     {
-      q: "Is RBSGA free to use?",
+      q: "Is ResumeCraft AI free to use?",
       a: "Yes! You can register an account, build resumes, run ATS analyses, and inspect skill gaps completely free of charge. We believe career empowerment should be accessible to all professionals and graduates.",
     },
   ];
@@ -44,7 +44,7 @@ export const FAQSection: React.FC = () => {
             Frequently Asked Questions
           </h2>
           <p className="text-base sm:text-lg text-slate-400 leading-relaxed">
-            Got questions about RBSGA? We have answers.
+            Got questions about ResumeCraft AI? We have answers.
           </p>
         </div>
 

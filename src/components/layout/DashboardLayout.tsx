@@ -79,7 +79,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             {!collapsed && (
               <div className="flex flex-col min-w-0">
                 <span className="font-black text-sm tracking-tight text-white truncate">
-                  RBSGA AI
+                  ResumeCraft AI
                 </span>
                 <span className="text-[10px] text-indigo-400 font-semibold uppercase tracking-wider truncate">
                   Career Suite
@@ -184,7 +184,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
           <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white">
             <Sparkles className="w-4 h-4" />
           </div>
-          <span className="font-extrabold text-sm text-white">RBSGA AI</span>
+          <span className="font-extrabold text-sm text-white">ResumeCraft AI</span>
         </Link>
         <button
           onClick={() => setMobileDrawerOpen(true)}
@@ -205,7 +205,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-400" />
-                <span className="font-bold text-white">RBSGA Navigation</span>
+                <span className="font-bold text-white">ResumeCraft Navigation</span>
               </div>
               <button
                 onClick={() => setMobileDrawerOpen(false)}
@@ -267,7 +267,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
         <header className="hidden md:flex items-center justify-between px-8 py-3.5 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md sticky top-0 z-20">
           <div>
             <h1 className="text-lg font-bold text-white tracking-tight">{currentPage}</h1>
-            <p className="text-xs text-slate-400">RBSGA Career Optimization Workspace</p>
+            <p className="text-xs text-slate-400">ResumeCraft Career Optimization Workspace</p>
           </div>
 
           <div className="flex items-center gap-3">

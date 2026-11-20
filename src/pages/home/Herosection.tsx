@@ -29,7 +29,7 @@ export const Herosection: React.FC = () => {
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
               <span>Next-Generation Career Intelligence</span>
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              <span className="text-slate-400">RBSGA 2.0</span>
+              <span className="text-slate-400">ResumeCraft AI</span>
             </div>
 
             {/* Main Headline */}
@@ -98,7 +98,7 @@ export const Herosection: React.FC = () => {
                   <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
                 </div>
                 <div className="text-[11px] font-mono text-slate-400 px-2 py-0.5 rounded bg-slate-800/60 border border-slate-700/50">
-                  rbsga-preview.pdf
+                  resumecraft-preview.pdf
                 </div>
               </div>
 
@@ -106,7 +106,7 @@ export const Herosection: React.FC = () => {
               <div className="relative overflow-hidden rounded-2xl bg-slate-950/60 p-4 border border-slate-800/60 flex items-center justify-center">
                 <img
                   src={resumeIllustration}
-                  alt="RBSGA Resume Builder & Skill Gap Analyzer"
+                  alt="ResumeCraft AI Resume Builder & Skill Gap Analyzer"
                   className="w-full max-h-[340px] object-contain drop-shadow-md hover:scale-105 transition-transform duration-500"
                 />
               </div>

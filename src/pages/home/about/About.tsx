@@ -25,7 +25,7 @@ export const AboutSection: React.FC = () => {
 
             <p className="text-sm text-slate-400 leading-relaxed">
               Whether you are a university graduate stepping into tech or an experienced
-              engineer targeting senior architecture roles, RBSGA delivers actionable feedback,
+              engineer targeting senior architecture roles, ResumeCraft AI delivers actionable feedback,
               structural clarity, and real-time guidance.
             </p>
 
