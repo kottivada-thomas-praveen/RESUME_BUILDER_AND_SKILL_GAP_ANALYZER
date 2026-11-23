@@ -14,6 +14,7 @@ import {
   Sparkles,
   PlusCircle,
   ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "../ui/Button";
 
@@ -58,6 +59,16 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) =>
       icon: User,
       badge: undefined,
     },
+    ...(user?.role === "ADMIN"
+      ? [
+          {
+            name: "Admin Center",
+            path: "/admin",
+            icon: ShieldCheck,
+            badge: "Admin",
+          },
+        ]
+      : []),
   ];
 
   const currentPage = navItems.find((item) => item.path === location.pathname)?.name || "Dashboard";

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   FileText,
   Compass,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "./ui/Button";
 
@@ -75,6 +76,18 @@ export const Navbar: React.FC = () => {
           <div className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
+                {user?.role === "ADMIN" && (
+                  <Link to="/admin">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-purple-500/50 bg-purple-500/10 text-purple-300 hover:bg-purple-500/20"
+                      leftIcon={<ShieldAlert className="w-3.5 h-3.5 text-purple-400" />}
+                    >
+                      Admin Center
+                    </Button>
+                  </Link>
+                )}
                 <Link to="/dashboard">
                   <Button
                     variant={isDashboardRoute ? "secondary" : "primary"}

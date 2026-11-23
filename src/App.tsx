@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useVisitorTracker } from "./hooks/useVisitorTracker";
 
 // Eagerly loaded: lightweight pages that are needed immediately.
 import Home from "./pages/home/Home";
@@ -31,6 +32,8 @@ const PageLoader = () => (
 );
 
 function App() {
+  useVisitorTracker();
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <Navbar />
@@ -56,7 +59,7 @@ function App() {
             <Route
               path="/admin"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute adminOnly>
                   <AdminDashboard />
                 </ProtectedRoute>
               }

@@ -24,8 +24,6 @@ import {
   ShieldCheck,
   Briefcase,
   DollarSign,
-  ArrowRight,
-  ExternalLink,
   Code
 } from "lucide-react";
 
@@ -324,13 +322,13 @@ const AnalyzeResume: React.FC = () => {
 
   // 2. Career Trajectory & Salary States
   const [careerData, setCareerData] = useState<CareerForecastData | null>(null);
-  const [careerLoading, setCareerLoading] = useState(false);
+  const [, setCareerLoading] = useState(false);
 
   // 3. GitHub Developer Code Proof States
   const [githubUsername, setGithubUsername] = useState("alexmercer");
   const [githubData, setGithubData] = useState<GithubProofData | null>(null);
   const [githubLoading, setGithubLoading] = useState(false);
-  const [githubError, setGithubError] = useState("");
+  const [, setGithubError] = useState("");
   const [copiedProofBullet, setCopiedProofBullet] = useState<string | null>(null);
 
   // 4. 1-Click STAR Bullet Optimizer States
@@ -769,7 +767,7 @@ const AnalyzeResume: React.FC = () => {
 
     const totalScore = Math.round((keywordMatchPct * 0.4) + (formatting * 0.2) + (sections * 0.2) + (bullets * 0.2));
 
-    const recs = [];
+    const recs: Array<{ id: number; type: "high" | "medium" | "low"; text: string; description: string }> = [];
     let recId = 1;
     if (missing.length > 0) {
       recs.push({
@@ -915,10 +913,6 @@ const AnalyzeResume: React.FC = () => {
     setStarInput(draft);
     handleGenerateStar(draft, skill);
     setActiveTab("star");
-  };
-
-  const handleQuickJumpToInterview = () => {
-    setActiveTab("interview");
   };
 
   return (
