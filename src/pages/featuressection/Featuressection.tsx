@@ -7,6 +7,9 @@ import {
   Eye,
   FileDown,
   ArrowRight,
+  Target,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "../../components/ui/Badge";
@@ -30,7 +33,7 @@ export const Featuressection: React.FC = () => {
       badge: "Intelligent",
       title: "Skill Gap Analysis",
       description:
-        "Compare your qualifications directly against real job descriptions to reveal missing technical and soft skills.",
+        "Compare qualifications directly against real job descriptions to reveal missing technical frameworks and tools.",
       link: "/analyze-resume",
       iconColor: "text-purple-400",
       iconBg: "bg-purple-500/10",
@@ -48,11 +51,44 @@ export const Featuressection: React.FC = () => {
       glow: "emerald" as const,
     },
     {
+      icon: Target,
+      badge: "Unique Solution",
+      title: "AI Interview Simulator",
+      description:
+        "Predicts the exact technical questions and STAR behavioral scenarios recruiters will ask regarding your missing skills.",
+      link: "/analyze-resume",
+      iconColor: "text-emerald-400",
+      iconBg: "bg-emerald-500/10",
+      glow: "emerald" as const,
+    },
+    {
+      icon: ShieldCheck,
+      badge: "Proof-Driven",
+      title: "GitHub Developer Proof",
+      description:
+        "Audits public repositories, languages, and star activity to generate verifiable proof bullets that eliminate recruiter trust doubt.",
+      link: "/analyze-resume",
+      iconColor: "text-orange-400",
+      iconBg: "bg-orange-500/10",
+      glow: "indigo" as const,
+    },
+    {
+      icon: Zap,
+      badge: "Google XYZ",
+      title: "1-Click STAR Impact Booster",
+      description:
+        "Transforms passive duty bullets into metric-driven achievements while cleansing empty buzzwords like 'team player'.",
+      link: "/analyze-resume",
+      iconColor: "text-pink-400",
+      iconBg: "bg-pink-500/10",
+      glow: "purple" as const,
+    },
+    {
       icon: BrainCircuit,
       badge: "Career Growth",
-      title: "Smart Course Recommendations",
+      title: "Career Trajectory & Salary ROI",
       description:
-        "Receive curated learning resources and project ideas designed specifically to bridge your identified skill gaps.",
+        "Market compensation benchmarks, high-demand adjacent roles, and 12-month promotion roadmaps for your stack.",
       link: "/analyze-resume",
       iconColor: "text-cyan-400",
       iconBg: "bg-cyan-500/10",

@@ -162,7 +162,7 @@ export const Dashboard: React.FC = () => {
             <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400 text-2xl mb-4">
               📊
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">Skill Gap Dashboard</h3>
+            <h3 className="text-xl font-bold text-white mb-2">Skill Gap & ATS Dashboard</h3>
             <p className="text-slate-400 text-sm mb-4">
               Visual radar charts & missing skill recommendations compared against live job descriptions.
             </p>
@@ -173,14 +173,53 @@ export const Dashboard: React.FC = () => {
 
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-emerald-500/50 transition-all duration-300 shadow-lg">
             <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400 text-2xl mb-4">
-              🛡️
+              🎯
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">GDPR & Security Status</h3>
+            <h3 className="text-xl font-bold text-white mb-2">AI Interview Simulator</h3>
             <p className="text-slate-400 text-sm mb-4">
-              Strict GDPR deletion endpoints • Encrypted JWT session • Role-based access control.
+              Predicts technical screening questions & STAR behavioral blueprints targeting your missing skills.
             </p>
-            <Link to="/profile" className="text-emerald-400 font-semibold text-sm hover:text-emerald-300">
-              Privacy Settings &rarr;
+            <Link to="/analyze-resume" className="text-emerald-400 font-semibold text-sm hover:text-emerald-300">
+              Practice Interview &rarr;
+            </Link>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-cyan-500/50 transition-all duration-300 shadow-lg">
+            <div className="w-12 h-12 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-400 text-2xl mb-4">
+              💰
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Career & Salary ROI</h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Market compensation benchmarks, 12-month promotion ladders, and adjacent career roles within reach.
+            </p>
+            <Link to="/analyze-resume" className="text-cyan-400 font-semibold text-sm hover:text-cyan-300">
+              View Salary Forecast &rarr;
+            </Link>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-orange-500/50 transition-all duration-300 shadow-lg">
+            <div className="w-12 h-12 bg-orange-500/10 rounded-xl flex items-center justify-center text-orange-400 text-2xl mb-4">
+              💻
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">GitHub Code Proof</h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Audits repositories, stars, and languages to generate verified recruiter-proof bullet points.
+            </p>
+            <Link to="/analyze-resume" className="text-orange-400 font-semibold text-sm hover:text-orange-300">
+              Verify Code Proof &rarr;
+            </Link>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 hover:border-pink-500/50 transition-all duration-300 shadow-lg">
+            <div className="w-12 h-12 bg-pink-500/10 rounded-xl flex items-center justify-center text-pink-400 text-2xl mb-4">
+              ⚡
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">STAR Metric Transformer</h3>
+            <p className="text-slate-400 text-sm mb-4">
+              Converts passive duties into Google XYZ impact achievements with metrics and anti-buzzword cleansing.
+            </p>
+            <Link to="/analyze-resume" className="text-pink-400 font-semibold text-sm hover:text-pink-300">
+              Transform Bullets &rarr;
             </Link>
           </div>
         </div>
